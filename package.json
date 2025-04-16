@@ -1,0 +1,28 @@
+{
+  "name": "express_mail_automation",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "backend": "npm run dev -w backend",
+    "frontend": "npm run dev -w frontend",
+    "start": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MekanEs/express_mail_automation.git"
+  },
+  "author": "Mekan Esenjanow",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MekanEs/express_mail_automation/issues"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "homepage": "https://github.com/MekanEs/express_mail_automation#readme",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

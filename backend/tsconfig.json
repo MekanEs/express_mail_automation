@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "skipLibCheck": true, // Пропускает проверку типов в библиотеках (ускоряет сборку)
+    "sourceMap": true // Генерировать source maps для отладки
+  },
+  "include": [
+    "src/**/*.ts", // Включаем все .ts файлы в src
+    "index.ts", // Включаем корневой index.ts
+    "public"
+  ],
+  "exclude": [
+    "node_modules", // Исключаем зависимости
+    "dist" // Исключаем папку сборки
+  ]
+}
