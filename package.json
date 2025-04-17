@@ -23,7 +23,8 @@
   "homepage": "https://github.com/MekanEs/express_mail_automation#readme",
   "description": "",
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "supabase": "^2.20.12"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -1,17 +1,21 @@
 
 import { useState } from 'react';
 import './App.css'
+import Accounts from './components/accounts/Accounts';
+import { accounts, from_email } from './types/types';
 
 function App() {
-  const [fromEmail,setFromEmails]=useState<{created_at:string,email:string,id:number}[]>([])
+  const [fromEmail,setFromEmails]=useState<from_email[]>([])
   const [curEmail,setCurEmail]=useState<string>('')
+ const [accounts,setAccounts]=useState<accounts>([])
+ const [limit,setLimit]=useState<number>(20)
 const process = ()=>{
 fetch('http://localhost:3002/api/process', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
-  body: JSON.stringify({ start: false }),
+  body: JSON.stringify({ accounts: accounts, emails:fromEmail,limit}),
 });
 }
 const getEmails = async ()=>{
@@ -21,6 +25,7 @@ const res = await fetch('http://localhost:3002/api/fromEmails', {
 
 });
 const {data}:{data:{created_at:string,email:string,id:number}[]} = await res.json()
+console.log(data)
 setFromEmails(data)
 }
 const postEmails = async ({email}:{email:string})=>{
@@ -46,6 +51,7 @@ await fetch('http://localhost:3002/api/fromEmails', {
 });
 
 }
+
   return (
     <>
       <div>
@@ -65,6 +71,8 @@ await fetch('http://localhost:3002/api/fromEmails', {
             })}
           </ul>
         </div>
+        <Accounts setSelected={setAccounts}/>
+        <input type="number" value={limit} onChange={(e)=>setLimit(Number(e.target.value))} />
        </div>
     </>
   )

@@ -6,19 +6,34 @@ import { simpleParser } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
 import { sanitizeOptions } from './constants';
 
-export async function processMailbox(
-  user: string,
-  password: string,
-  from: string,
-  host: string,
-  mailboxes: string[],
-  outputPath: string
-) {
+export async function processMailbox({
+  user,
+  from,
+  host,
+  mailboxes,
+  outputPath,
+  limit,
+  password,
+  token
+}: {
+  user: string;
+  from: string;
+  host: string;
+  mailboxes: string[];
+  outputPath: string;
+  limit: number;
+  password?: string;
+  token?: string;
+}) {
+  const auth =
+    password !== undefined && !token
+      ? { user, pass: password, mathod: 'PLAIN' }
+      : { user, accessToken: token, method: 'XOAUTH2' };
   const client = new ImapFlow({
     host: host,
     port: 993,
     secure: true,
-    auth: { user, pass: password }
+    auth: auth
   });
 
   const dirPath = path.join(__dirname, '..', '..', outputPath);
@@ -36,7 +51,7 @@ export async function processMailbox(
         lock.release();
         return;
       }
-      list = list.slice(0, 12);
+      list = list.slice(0, limit);
       const markAsSeen = [];
       for (let i = 0; i < list.length; i += 10) {
         const batch = list.slice(i, i + 10);
