@@ -1,7 +1,8 @@
 import { Router } from 'express';
+import { fromEmailsController } from '../../controllers/fromEmailsController';
 
 const router = Router();
-router.get('/', (request, response) => {
-  response.json({ email: ['first', 'second'] });
-});
+router.get('/', fromEmailsController.getEmails);
+router.post('/', fromEmailsController.postEmails);
+router.delete('/', fromEmailsController.deleteEmails);
 export default router;

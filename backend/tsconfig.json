@@ -1,18 +1,16 @@
 {
   "compilerOptions": {
+    "target": "ES2020", // или другой нужный уровень
+    "module": "commonjs",
+    "moduleResolution": "node",
+
     "esModuleInterop": true,
     "outDir": "dist",
-    "baseUrl": ".",
-    "skipLibCheck": true, // Пропускает проверку типов в библиотеках (ускоряет сборку)
-    "sourceMap": true // Генерировать source maps для отладки
+    "rootDir": "src", // добавь rootDir
+    "strict": true, // включить строгий режим (высокое качество типизации)
+    "skipLibCheck": true,
+    "sourceMap": true
   },
-  "include": [
-    "src/**/*.ts", // Включаем все .ts файлы в src
-    "index.ts", // Включаем корневой index.ts
-    "public"
-  ],
-  "exclude": [
-    "node_modules", // Исключаем зависимости
-    "dist" // Исключаем папку сборки
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
