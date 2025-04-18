@@ -5,6 +5,7 @@ import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
 import { sanitizeOptions } from './constants';
+import { createImapConfig } from '../../utils/createConfig';
 
 export async function processMailbox({
   user,
@@ -25,16 +26,8 @@ export async function processMailbox({
   password?: string;
   token?: string;
 }) {
-  const auth =
-    password !== undefined && !token
-      ? { user, pass: password, mathod: 'PLAIN' }
-      : { user, accessToken: token, method: 'XOAUTH2' };
-  const client = new ImapFlow({
-    host: host,
-    port: 993,
-    secure: true,
-    auth: auth
-  });
+  const config = createImapConfig({ user, host, password, token });
+  const client = new ImapFlow(config);
 
   const dirPath = path.join(__dirname, '..', '..', outputPath);
   createDir(dirPath);
@@ -47,6 +40,7 @@ export async function processMailbox({
       const lock = await client.getMailboxLock(inbox);
 
       let list = await searchUnseenFrom({ from, client, inbox });
+      console.log(!list.length, limit, inbox, mailboxes);
       if (!list.length) {
         lock.release();
         return;
@@ -54,9 +48,17 @@ export async function processMailbox({
       list = list.slice(0, limit);
       const markAsSeen = [];
       for (let i = 0; i < list.length; i += 10) {
+        console.log(true, 'батч', from);
         const batch = list.slice(i, i + 10);
-        const messageIterator = client.fetch(batch, { source: true, uid: true });
-        for await (const message of messageIterator) {
+
+        console.log(true, list, batch);
+        for (const uid of batch) {
+          const message = await client.fetchOne(
+            uid.toString(),
+            { source: true, uid: true },
+            { uid: true }
+          );
+          console.log(true, 'message');
           try {
             await processEmail(message, browser, dirPath);
             markAsSeen.push(message.uid);
@@ -73,8 +75,8 @@ export async function processMailbox({
       }
 
       try {
-        await client.messageFlagsAdd(markAsSeen, ['\\Seen']);
-        console.log(`Письма помечены как прочитанные: ${list.join(', ')}`);
+        await client.messageFlagsAdd(markAsSeen, ['\\Seen'], { uid: true });
+        console.log(`Письма помечены как прочитанные: ${markAsSeen.join(', ')}`);
       } catch (err) {
         if (err instanceof Error) {
           console.log(`Ошибка при пометке писем как прочитанных: ${err.message}`);
@@ -120,7 +122,7 @@ async function processEmail(message: FetchMessageObject, browser: Browser, dirPa
       }
     }
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 3000)));
 
     console.log(`✔ Обработано письмо: "${parsed.subject || 'без темы'}" ${message.uid}`);
   } finally {
