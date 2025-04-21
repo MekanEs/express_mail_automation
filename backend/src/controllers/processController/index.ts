@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { processMailbox } from '../../services/ProcessService';
 import { getConfig } from '../../utils/getConfig';
 import { accounts, from_email } from '../../types/types';
-
+import { v4 as uuidv4 } from 'uuid';
 class ProcessController {
   public async processEmails(
     req: Request<
@@ -16,6 +16,7 @@ class ProcessController {
 
     console.log(accounts.map((el) => el.email).join(', '));
     console.log(emails);
+    const process_id = uuidv4();
     try {
       for (const account of accounts) {
         console.log(`✅ account ${account.email}`, account);
@@ -26,9 +27,10 @@ class ProcessController {
           continue;
         }
         for (const from_email of emails) {
-          console.log(`✅ from email ${from_email.email}`);
+          console.log(`✅✅ from email ${from_email.email}`);
           if (account.is_token) {
             await processMailbox({
+              process_id: process_id,
               user: account.email || '',
               from: from_email.email,
               host: config.host,
@@ -39,6 +41,7 @@ class ProcessController {
             });
           } else {
             await processMailbox({
+              process_id: process_id,
               user: account.email || '',
               from: from_email.email,
               host: config.host,
@@ -51,14 +54,7 @@ class ProcessController {
         }
       }
       res.send({ is_proceeded: '+' });
-      // await processMailbox(
-      //   'mekanesenjanov@ya.ru',
-      //   'dvtgiixooxjbxevy',
-      //   'flagman@flagmantech.email',
-      //   'imap.yandex.com',
-      //   ['INBOX'],
-      //   'files'
-      // );
+
     } catch (err) {
       console.log(err);
       res.send({ is_proceeded: 'x' });

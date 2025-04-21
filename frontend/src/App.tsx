@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import Accounts from './components/accounts/Accounts';
 import { accounts, from_email } from './types/types';
+import { Reports } from './components/reports/Reports';
 
 function App() {
     const [fromEmail, setFromEmails] = useState<(from_email & { is_selected?: boolean })[]>([]);
@@ -122,6 +123,7 @@ function App() {
                     value={limit}
                     onChange={(e) => setLimit(Number(e.target.value))}
                 />
+                <Reports />
             </div>
         </>
     );

@@ -35,6 +35,7 @@ export function createImapConfig({
     host,
     port: 993,
     secure: true,
+    logger: false,
     auth: authConfig
   };
 

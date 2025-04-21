@@ -6,7 +6,10 @@ import { simpleParser } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
 import { sanitizeOptions } from './constants';
 import { createImapConfig } from '../../utils/createConfig';
-
+import * as cheerio from 'cheerio';
+import { openLinks } from './openLinks';
+import { ProcessReport } from '../../types/reports';
+import { supabaseClient } from '../../clients/supabaseClient';
 export async function processMailbox({
   user,
   from,
@@ -14,6 +17,8 @@ export async function processMailbox({
   mailboxes,
   outputPath,
   limit,
+  process_id,
+  openRate,
   password,
   token
 }: {
@@ -23,9 +28,16 @@ export async function processMailbox({
   mailboxes: string[];
   outputPath: string;
   limit: number;
+  process_id: string;
+  openRate?: number;
   password?: string;
   token?: string;
+
 }) {
+  if (!openRate) {
+    openRate = 70;
+  }
+
   const config = createImapConfig({ user, host, password, token });
   const client = new ImapFlow(config);
 
@@ -33,19 +45,32 @@ export async function processMailbox({
   createDir(dirPath);
 
   let browser;
+  let linksToOpen: string[] = [];
   try {
     await client.connect();
     browser = await launchBrowser();
+    linksToOpen = [];
     for (const inbox of mailboxes) {
+      const report: ProcessReport = {
+        process_id: process_id,
+        status: 'success',
+        account: user,
+        sender: from,
+        emails: { found: 0, processed: 0, errors: 0, errorMessages: [] },
+        links: { found: 0, targetOpen: 0, attemptedOpen: 0, errors: 0, errorMessages: [] },
+      };
       const lock = await client.getMailboxLock(inbox);
 
       let list = await searchUnseenFrom({ from, client, inbox });
       console.log(!list.length, limit, inbox, mailboxes);
       if (!list.length) {
         lock.release();
-        return;
+        continue;
       }
+      report.emails.found = list.length;
       list = list.slice(0, limit);
+      const shouldOpenCount = Math.ceil((list.length * openRate) / 100);
+      linksToOpen = [];
       const markAsSeen = [];
       for (let i = 0; i < list.length; i += 10) {
         console.log(true, 'батч', from);
@@ -58,20 +83,25 @@ export async function processMailbox({
             { source: true, uid: true },
             { uid: true }
           );
-          console.log(true, 'message');
           try {
-            await processEmail(message, browser, dirPath);
+            const link = await processEmail(message, browser, dirPath);
+            if (linksToOpen.length < shouldOpenCount && !!link) {
+              linksToOpen.push(link);
+              report.links.found += 1;
+            }
+            report.emails.processed += 1;
             markAsSeen.push(message.uid);
             if (global.gc) global.gc();
           } catch (err) {
+            report.emails.errors += 1;
             if (err instanceof Error) {
+              report.emails.errorMessages.push(err.message);
               console.log(`Ошибка обработки письма ${message.uid}: ${err.message}`);
             } else {
               console.log(`Неизвестная ошибка:`, err);
             }
           }
         }
-        await new Promise((r) => setTimeout(r, 1000));
       }
 
       try {
@@ -85,6 +115,31 @@ export async function processMailbox({
         }
       }
       lock.release();
+      if (linksToOpen.length) {
+        await openLinks(linksToOpen, report);
+      }
+      if (report.emails.errors === 0 && report.links.errors === 0) {
+        report.status = 'success';
+      } else {
+        report.status = 'partial_failure';
+      }
+      console.log("Process Report:", JSON.stringify(report, null, 2));
+      await supabaseClient.from('reports').insert({
+        account: user,
+        emails_errorMessages: report.emails.errorMessages,
+        emails_errors: report.emails.errors,
+        emails_found: report.emails.found,
+        emails_processed: report.emails.processed,
+        links_attemptedOpen: report.links.attemptedOpen,
+        links_errorMessages: report.links.errorMessages,
+        links_errors: report.links.errors,
+        links_found: report.links.found,
+        links_targetOpen: report.links.targetOpen,
+        inbox: inbox,
+        process_id: process_id,
+        sender: from,
+        status: report.status
+      });
     }
   } catch (err) {
     console.error('Error during initial client.connect():', err, user); // More specific catch
@@ -93,6 +148,11 @@ export async function processMailbox({
   } finally {
     if (browser) await browser.close();
     await client.logout();
+
+
+
+    // Логирование
+
     console.log('Отключение завершено.');
   }
 }
@@ -111,7 +171,9 @@ async function processEmail(message: FetchMessageObject, browser: Browser, dirPa
 
     const sanitizedHtml = sanitizeHtml(parsed.html, sanitizeOptions);
     fs.writeFileSync(htmlPath, sanitizedHtml);
-
+    const doc = cheerio.load(sanitizedHtml);
+    const link = doc('a:first').attr('href');
+    console.log(`found link ${link}`);
     try {
       await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0', timeout: 30000 });
     } catch (err) {
@@ -125,6 +187,7 @@ async function processEmail(message: FetchMessageObject, browser: Browser, dirPa
     await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 3000)));
 
     console.log(`✔ Обработано письмо: "${parsed.subject || 'без темы'}" ${message.uid}`);
+    return link;
   } finally {
     await page.close();
     console.log('page closed');
@@ -140,9 +203,10 @@ async function launchBrowser(headless: boolean = false): Promise<Browser> {
     headless: headless,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  console.log('Browser launched successfully.');
+
   return browser;
 }
+
 const createDir = (dirPath: string) => {
   if (!fs.existsSync(dirPath)) {
     try {

@@ -16,12 +16,16 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
     "@types/express": "^5.0.1",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
     "imapflow": "^1.0.184",
     "mailparser": "^3.7.2",
-    "sanitize-html": "^2.15.0"
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "sanitize-html": "^2.15.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
