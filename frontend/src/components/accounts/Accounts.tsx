@@ -1,17 +1,18 @@
 import React, { FC, useEffect, useState } from 'react';
-import { accounts } from '../../types/types';
+import { account, accounts } from '../../types/types';
 
-const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts>> }> = ({
+const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts> & { is_checked?: boolean }> }> = ({
     setSelected
 }) => {
-    const [accounts, setAccounts] = useState<accounts>([]);
+    const [accounts, setAccounts] = useState<(account & { is_checked?: boolean })[]>([]);
+    const [checked, setChecked] = useState<string[]>([])
     const getAccounts = async () => {
         setAccounts([]);
         const res = await fetch('http://localhost:3002/api/accounts', {
             method: 'GET'
         });
-        const { data } = await res.json();
-        console.log('data', data);
+        const { data }: { data: (account & { is_checked?: boolean })[] } = await res.json();
+
         setAccounts(data);
     };
 
@@ -28,8 +29,10 @@ const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts>>
             },
             body: JSON.stringify({ accounts: accounts })
         });
-        const res = await data.json();
-        console.log(res);
+        const res: string[] = await data.json();
+        setChecked(res)
+        console.log(res, accounts)
+
     };
     return (
         <div>
@@ -37,7 +40,6 @@ const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts>>
             <div>
                 {accounts.map((el) => (
                     <li key={el.id}>
-                        <div>provider: {el.provider}</div>
                         <span>email: {el.email}</span>
                         <input
                             onChange={(e) => {
@@ -50,12 +52,20 @@ const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts>>
                                     return;
                                 }
 
-                                setSelected((prev) => prev.filter((elem) => el.id !== elem.id));
+                                setSelected((prev) => [...prev].filter((elem) => el.id !== elem.id));
                             }}
                             type="checkbox"
                             name=""
                             id=""
                         />
+                        <input
+                            checked={checked.includes(el.email ?? '')}
+                            type="checkbox"
+                            name=""
+                            id=""
+                            readOnly
+                        />
+
                     </li>
                 ))}
             </div>

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { supabaseClient } from '../../clients/supabaseClient';
+import { supabaseClient } from '../clients/supabaseClient';
+
 
 class ReportsController {
     public async getReports(_req: Request, response: Response) {
@@ -24,7 +25,6 @@ class ReportsController {
             return acc;
         }, {} as Record<string, typeof data>);
 
-        console.log(grouped);
         response.status(200).send(grouped);
     }
 }

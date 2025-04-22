@@ -14,7 +14,7 @@ export const Reports = () => {
   return (
     <div className="space-y-6">
       <button onClick={fetchReports}>Fetch Reports</button>
-      {Object.entries(reports).map(([processId, items]) => (
+      {Object.entries(reports).reverse().map(([processId, items]) => (
         <div key={processId} className="bordered rounded-xl p-4 shadow-sm bg-white">
           <p className="text-lg font-semibold mb-2">Process ID: {processId}</p>
           <h5 className="text-lg font-semibold mb-2">{items[0].created_at?.slice(0, 10)}</h5>

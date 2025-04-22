@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { fromEmailsController } from '../../controllers/fromEmailsController';
+import { fromEmailsController } from '../../controllers/from-emails.controller';
 
 const router = Router();
 router.get('/', fromEmailsController.getEmails);
