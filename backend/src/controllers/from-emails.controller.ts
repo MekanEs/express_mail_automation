@@ -9,22 +9,12 @@ class FromEmailsController {
         return;
     }
     public async postEmails(req: Request, response: Response) {
-        const { error } = await supabaseClient.from('from_emails').insert({ email: req.body.email });
-        if (error !== null) {
-            response.status(400);
-            return;
-        }
-        response.status(200);
-        return;
+        await supabaseClient.from('from_emails').insert({ email: req.body.email });
+        response.sendStatus(200);
     }
     public async deleteEmails(req: Request, response: Response) {
-        const { error } = await supabaseClient.from('from_emails').delete().eq('id', req.body.id);
-        if (error !== null) {
-            response.status(400);
-            return;
-        }
-        response.status(200);
-        return;
+        await supabaseClient.from('from_emails').delete().eq('id', req.body.id);
+        response.sendStatus(200);
     }
 }
 export const fromEmailsController = new FromEmailsController();

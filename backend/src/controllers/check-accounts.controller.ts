@@ -40,19 +40,31 @@ class CheckAccountsController {
                 console.log('IMAP capabilities:', capa);
                 console.log('IMAP authenticated:', auth);
                 connected.push(account.email || '');
-            } catch (err) {
-                console.log('check error', err); // Выводим полную ошибку
-                if (account.provider === 'google') {
-                    console.log(account.provider);
-                    if (!account.refresh_token) {
-                        return;
+            } catch (err: any) {
+                console.log('check error', err);
+                if (account.provider === 'google' && account.refresh_token) {
+
+                    console.log('Attempting Google token refresh for:', account.email);
+                    try {
+                        const new_acces_token = await getAccessToken(account.refresh_token);
+                        console.log('✨ New access token obtained for:', account.email);
+                        await supabaseClient
+                            .from('user_accounts')
+                            .update({ access_token: new_acces_token })
+                            .eq('id', account.id);
+                        connected.push(account.email || '');
+                    } catch (refreshError) {
+                        console.error('Token refresh failed for:', account.email, refreshError);
+                        throw err;
                     }
-                    const new_acces_token = await getAccessToken(account.refresh_token);
-                    console.log('✨new acces token', ':', new_acces_token, ':');
-                    await supabaseClient
-                        .from('user_accounts')
-                        .update({ access_token: new_acces_token })
-                        .eq('id', account.id);
+                }
+
+
+            } finally {
+                if (client.usable) {
+                    await client.logout();
+                } else {
+                    console.log(`Can't connect to ${account.email}`)
                 }
             }
         }

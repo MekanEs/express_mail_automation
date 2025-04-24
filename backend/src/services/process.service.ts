@@ -16,6 +16,7 @@ export async function processMailbox({
     from,
     host,
     mailboxes,
+    spam,
     outputPath,
     limit,
     process_id,
@@ -27,6 +28,7 @@ export async function processMailbox({
     from: string;
     host: string;
     mailboxes: string[];
+    spam: string[];
     outputPath: string;
     limit: number;
     process_id: string;
@@ -37,7 +39,19 @@ export async function processMailbox({
     if (!openRate) {
         openRate = 70;
     }
-
+    console.log({
+        user,
+        from,
+        host,
+        mailboxes,
+        outputPath,
+        limit,
+        process_id,
+        openRate,
+        password,
+        token,
+        spam
+    })
     const config = createImapConfig({ user, host, password, token });
     const client = new ImapFlow(config);
 
@@ -50,15 +64,23 @@ export async function processMailbox({
         await client.connect();
         browser = await launchBrowser();
         linksToOpen = [];
+        const spamLock = await client.getMailboxLock(spam[0]);
+        let spamList = await searchUnseenFrom({ from, client, inbox: spam[0] });
+        let { uidMap } = await client.messageMove(spamList, mailboxes[0], { uid: true })
+        console.log('перемещено из спам: ', spamList.length, uidMap?.size, ' писем')
+        spamLock.release();
         for (const inbox of mailboxes) {
             const report: ProcessReport = {
                 process_id: process_id,
                 status: 'success',
                 account: user,
                 sender: from,
+                spam: { found: spamList.length, moved: uidMap?.size ?? 0 },
                 emails: { found: 0, processed: 0, errors: 0, errorMessages: [] },
                 links: { found: 0, targetOpen: 0, attemptedOpen: 0, errors: 0, errorMessages: [] },
             };
+            spamList = []
+            uidMap = new Map()
             const lock = await client.getMailboxLock(inbox);
 
             let list = await searchUnseenFrom({ from, client, inbox });
@@ -76,6 +98,8 @@ export async function processMailbox({
                     links_errors: report.links.errors,
                     links_found: report.links.found,
                     links_targetOpen: report.links.targetOpen,
+                    spam_found: report.spam.found,
+                    spam_moved: report.spam.moved,
                     inbox: inbox,
                     process_id: process_id,
                     sender: from,
@@ -151,6 +175,8 @@ export async function processMailbox({
                 links_errors: report.links.errors,
                 links_found: report.links.found,
                 links_targetOpen: report.links.targetOpen,
+                spam_found: report.spam.found,
+                spam_moved: report.spam.moved,
                 inbox: inbox,
                 process_id: process_id,
                 sender: from,

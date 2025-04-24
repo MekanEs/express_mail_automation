@@ -1,211 +1,188 @@
-# Рекомендации по рефакторингу backend
+# Анализ API эндпоинтов backend
 
-После анализа структуры кода в маршрутах, контроллерах и сервисах были выявлены следующие возможности для упрощения.
+## 1. `/api/accounts`
 
-## Текущие проблемы
-
-1. **Избыточное вложение директорий** - каждый контроллер/сервис находится в отдельной папке, даже когда в ней только один файл index.ts
-2. **Отсутствие единого подхода к обработке ошибок** - обработка ошибок реализована inconsistently
-3. **Смешивание бизнес-логики и контроллеров** - контроллеры содержат много бизнес-логики
-4. **Отсутствие централизованной валидации** - валидация данных не структурирована
-5. **Избыточное логирование в рабочем коде** - много console.log в рабочем коде
-6. **Прямые обращения к внешним клиентам** - Supabase клиент используется напрямую в контроллерах
-
-## Рекомендации по упрощению
-
-### 1. Упростить файловую структуру
-
-**Обоснование**: Текущая структура с множеством вложенных директорий создает лишние уровни вложенности и усложняет навигацию.
-
-**Рекомендации**:
-- Переместить файлы из подпапок в основные директории (`controllers/`, `services/` и т.д.)
-- Заменить структуру `controllers/accountsController/index.ts` на `controllers/accounts.controller.ts`
-- Упростить импорты, сократив пути к файлам
-
-**Пример**:
-```typescript
-// Было
-import { accountsController } from '../../controllers/accountsController';
-
-// Стало
-import { accountsController } from '../../controllers/accounts.controller';
-```
-
-### 2. Унифицировать обработку ошибок
-
-**Обоснование**: Разрозненный подход к обработке ошибок усложняет поддержку и отладку.
-
-**Рекомендации**:
-- Создать централизованный обработчик ошибок
-- Определить стандартные HTTP ответы для различных типов ошибок
-- Использовать middleware для обработки ошибок вместо try/catch в каждом контроллере
-
-**Пример**:
-```typescript
-// Было в processController
-try {
-  // логика
-  res.send({ is_proceeded: '+' });
-} catch (err) {
-  console.log(err);
-  res.send({ is_proceeded: 'x' });
-}
-
-// Стало
-// controllers/process.controller.ts
-const processEmails = asyncHandler(async (req, res) => {
-  // логика без try/catch
-  res.send({ is_proceeded: '+' });
-});
-
-// middleware/error.middleware.ts
-const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode).json({
-    message: err.message,
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack
-  });
-};
-```
-
-### 3. Вынести бизнес-логику из контроллеров в сервисы
-
-**Обоснование**: Контроллеры должны только координировать запросы и ответы, а не содержать бизнес-логику.
-
-**Рекомендации**:
-- Переместить тяжелую бизнес-логику из контроллеров в соответствующие сервисы
-- Контроллеры должны быть тонкими и отвечать только за маршрутизацию
-- Модуль processController слишком сложный и должен быть упрощен
-
-**Пример**:
-```typescript
-// Было
-// processController
-public async processEmails(req, res) {
-  // 40+ строк бизнес-логики
-}
-
-// Стало
-// process.controller.ts
-public async processEmails(req, res) {
-  const { accounts, emails, limit } = req.body;
-  const result = await processService.processEmailBatch(accounts, emails, limit);
-  res.send(result);
-}
-
-// process.service.ts
-public async processEmailBatch(accounts, emails, limit) {
-  // перенесенная бизнес-логика
-}
-```
-
-### 4. Внедрить валидацию данных
-
-**Обоснование**: Валидация запросов критична для безопасности и стабильности API.
-
-**Рекомендации**:
-- Использовать middleware для валидации входящих данных
-- Валидировать все параметры до их использования в бизнес-логике
-- Определить четкие схемы для валидации
-
-**Пример**:
-```typescript
-// Валидация запроса
-const processEmailsValidator = [
-  body('accounts').isArray().notEmpty(),
-  body('accounts.*.email').isEmail(),
-  body('emails').isArray().notEmpty(),
-  body('emails.*.email').isEmail(),
-  body('limit').optional().isInt({ min: 1, max: 100 })
-];
-
-router.post('/', processEmailsValidator, processController.processEmails);
-```
-
-### 5. Улучшить логирование
-
-**Обоснование**: Текущее логирование смешано с бизнес-логикой, что затрудняет фильтрацию и анализ.
-
-**Рекомендации**:
-- Заменить console.log на структурированный логгер (winston или pino)
-- Определить уровни логирования (error, warn, info, debug)
-- Вынести логирование из бизнес-логики
-
-**Пример**:
-```typescript
-// Вместо
-console.log(`✅ account ${account.email}`, account);
-
-// Использовать
-logger.info('Processing account', { email: account.email, account_id: account.id });
-```
-
-### 6. Абстрагировать работу с внешними сервисами
-
-**Обоснование**: Прямые обращения к внешним сервисам усложняют тестирование и замену провайдеров.
-
-**Рекомендации**:
-- Создать абстракции для работы с внешними API (supabase, email и т.д.)
-- Использовать паттерн Repository для доступа к данным
-- Инжектировать зависимости вместо прямого импорта
-
-**Пример**:
-```typescript
-// Было
-const accounts = await supabaseClient.from('user_accounts').select();
-
-// Стало
-// user-account.repository.ts
-export class UserAccountRepository {
-  async findAll() {
-    return await supabaseClient.from('user_accounts').select();
+### GET `/api/accounts`
+- **Входные данные**: Не требуется
+- **Выходные данные**: Массив объектов типа `account[]`, где каждый объект имеет структуру:
+  ```typescript
+  {
+    access_token: string | null;
+    app_password: string | null;
+    email: string | null;
+    expires_at: number | null;
+    id: string;
+    is_token: boolean;
+    provider: string | null;
+    refresh_token: string | null;
+    updated_at: string | null;
+    user_id: string;
+    isSelected?: boolean;
   }
-}
+  ```
 
-// accounts.service.ts
-constructor(private userAccountRepository: UserAccountRepository) {}
+## 2. `/api/fromEmails`
 
-async getAccounts() {
-  return this.userAccountRepository.findAll();
-}
-```
+### GET `/api/fromEmails`
+- **Входные данные**: Не требуется
+- **Выходные данные**: Массив объектов типа:
+  ```typescript
+  {
+    created_at: string;
+    email: string;
+    id: number;
+  }
+  ```
 
-### 7. Упростить ProcessService
+### POST `/api/fromEmails`
+- **Входные данные**:
+  ```typescript
+  {
+    email: string;
+  }
+  ```
+- **Выходные данные**: Статус код 200, без тела ответа
 
-**Обоснование**: Модуль ProcessService слишком сложный (235 строк) и выполняет слишком много ответственностей.
+### DELETE `/api/fromEmails`
+- **Входные данные**:
+  ```typescript
+  {
+    id: number;
+  }
+  ```
+- **Выходные данные**: Статус код 200, без тела ответа
 
-**Рекомендации**:
-- Разбить функцию processMailbox на более мелкие функции с единой ответственностью
-- Выделить работу с браузером в отдельный сервис
-- Разделить логику работы с IMAP и логику обработки писем
+## 3. `/api/process`
 
-**Пример структуры**:
-```
-services/
-  email/
-    imap.service.ts  // Работа с IMAP
-    parser.service.ts  // Парсинг писем
-  browser/
-    renderer.service.ts  // Рендеринг HTML
-    browser.service.ts  // Управление браузером
-  process/
-    process.service.ts  // Оркестрация процесса
-```
+### POST `/api/process`
+- **Входные данные**: Объект типа `ProcessRequestBody`:
+  ```typescript
+  {
+    accounts: {
+      access_token: string | null;
+      app_password: string | null;
+      email: string | null;
+      expires_at: number | null;
+      id: string;
+      is_token: boolean;
+      provider: string | null;
+      refresh_token: string | null;
+      updated_at: string | null;
+      user_id: string;
+      isSelected?: boolean;
+    }[];
+    emails: {
+      created_at: string;
+      email: string;
+      id: number;
+    }[];
+    limit?: number;
 
-## Пошаговый план рефакторинга
+  }
+  ```
+- **Выходные данные**: Статус код 200, возвращает объект с `process_id`
 
-1. Начать с реорганизации файловой структуры
-2. Внедрить глобальный обработчик ошибок
-3. Создать слой репозиториев для доступа к данным
-4. Разбить сложные сервисы на более мелкие модули
-5. Добавить валидацию для всех маршрутов
-6. Заменить console.log на структурированное логирование
-7. Внедрить тесты для критически важных модулей
+## 4. `/api/checkAccounts`
 
-## Преимущества рефакторинга
+### GET `/api/checkAccounts`
+- **Входные данные**: Не требуется
+- **Выходные данные**: Массив email-адресов аккаунтов, которые успешно подключились:
+  ```typescript
+  string[]
+  ```
 
-- **Упрощение кода** - уменьшение сложности и повышение читаемости
-- **Улучшение тестируемости** - более модульный код легче тестировать
-- **Ускорение разработки** - ясная структура ускоряет внедрение новых функций
-- **Снижение когнитивной нагрузки** - разработчикам проще понимать и модифицировать код
-- **Повышение надежности** - лучшая обработка ошибок и валидация данных
+## 5. `/api/reports`
+
+### GET `/api/reports`
+- **Входные данные**: Query параметры:
+  ```typescript
+  {
+    page?: string; // по умолчанию '1'
+    limit?: string; // по умолчанию '10'
+    sort_by?: string; // по умолчанию 'created_at'
+    sort_order?: string; // по умолчанию 'desc'
+    filter_status?: string;
+    filter_account?: string;
+    filter_process_id?: string;
+  }
+  ```
+- **Выходные данные**: Объект с пагинированными группами отчетов и метаданными:
+  ```typescript
+  {
+    data: {
+      processId: string;
+      reports: {
+        id: string;
+        created_at: string | null;
+        process_id: string | null;
+        account: string | null;
+        sender: string | null;
+        inbox: string | null;
+        status: string | null;
+        emails_found: number | null;
+        emails_processed: number | null;
+        links_found: number | null;
+        links_attemptedOpen: number | null;
+        links_errors: number | null;
+        emails_errorMessages?: any;
+      }[];
+    }[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }
+  ```
+
+### GET `/api/reports/export`
+- **Входные данные**: Query параметры:
+  ```typescript
+  {
+    format?: string; // 'csv' или 'json', по умолчанию 'csv'
+    sort_by?: string; // по умолчанию 'created_at'
+    sort_order?: string; // по умолчанию 'desc'
+    filter_status?: string;
+    filter_account?: string;
+    filter_process_id?: string;
+  }
+  ```
+- **Выходные данные**: Файл в формате CSV или JSON с отчетами
+
+## 6. `/api/dashboard`
+
+### GET `/api/dashboard/metrics`
+- **Входные данные**: Не требуется
+- **Выходные данные**: Объект типа `DashboardMetrics`:
+  ```typescript
+  {
+    summary: {
+      totalReports: number;
+      totalEmailsFound: number;
+      totalEmailsProcessed: number;
+      successRate: number;
+    };
+    recentProcesses: {
+      process_id: string;
+      created_at: string;
+    }[];
+    accountsStats: Record<string, {
+      total: number;
+      success: number;
+      failure: number;
+      partial: number;
+    }>;
+  }
+  ```
+
+## 7. `/api`
+
+### GET `/api`
+- **Входные данные**: Не требуется
+- **Выходные данные**:
+  ```typescript
+  {
+    message: string;
+  }
+  ```

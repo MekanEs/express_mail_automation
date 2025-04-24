@@ -1,90 +1,140 @@
-import React, { FC, useEffect, useState } from 'react';
-import { account, accounts } from '../../types/types';
+import { FC } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { account, SelectableAccount } from '../../types/types';
+import { checkAccounts, getAccounts } from '../../api/accountsApi';
+import { useAccountStatusCache } from '../../hooks/useAccountStatusCache';
+import toast from 'react-hot-toast';
+import Loader from '../Loader/Loader';
 
-const Accounts: FC<{ setSelected: React.Dispatch<React.SetStateAction<accounts> & { is_checked?: boolean }> }> = ({
-    setSelected
-}) => {
-    const [accounts, setAccounts] = useState<(account & { is_checked?: boolean })[]>([]);
-    const [checked, setChecked] = useState<string[]>([])
-    const getAccounts = async () => {
-        setAccounts([]);
-        const res = await fetch('http://localhost:3002/api/accounts', {
-            method: 'GET'
-        });
-        const { data }: { data: (account & { is_checked?: boolean })[] } = await res.json();
+interface AccountsProps {
+    selected: SelectableAccount[];
+    setSelected: (selected: SelectableAccount[]) => void
+}
 
-        setAccounts(data);
+const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
+    const { checked, saveChecked } = useAccountStatusCache();
+    const queryClient = useQueryClient();
+
+    const { data: accounts = [], isFetching } = useQuery<SelectableAccount[]>({
+        queryKey: ['accounts'],
+        queryFn: getAccounts
+    });
+
+    const checkAccountsMutation = useMutation({
+        mutationFn: (accountsToCheck: account[]) => checkAccounts(accountsToCheck),
+        onSuccess: (data) => {
+            saveChecked(data);
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            toast.success(`Checked ${accounts.length} accounts. ${data.length} connected.`);
+        },
+        onError: (error) => {
+            toast.error(`Account check failed: ${error.message}`);
+        }
+    });
+
+    const handleCheck = () => {
+        checkAccountsMutation.mutate(accounts);
     };
 
-    useEffect(() => {
-        console.log('get accs');
+    const handleToggleAccount = (account: account, isSelected: boolean) => {
+        let newSelection: SelectableAccount[];
+        if (isSelected) {
+            const accountToAdd = accounts.find(acc => acc.id === account.id);
 
-        getAccounts();
-    }, []);
-    const check = async (accounts: accounts) => {
-        const data = await fetch('http://localhost:3002/api/checkAccounts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ accounts: accounts })
-        });
-        const res: string[] = await data.json();
-        setChecked(res)
-        console.log(res, accounts)
-
+            if (accountToAdd) {
+                accountToAdd.is_selected = true;
+                newSelection = [...selected, accountToAdd];
+            } else {
+                newSelection = selected; // Не должно произойти, но для безопасности
+            }
+        } else {
+            newSelection = selected.filter(acc => acc.id !== account.id);
+        }
+        setSelected(newSelection);
     };
+
     return (
-        <div>
-            <h3>Accounts</h3>
-            <div>
-                {accounts.map((el) => (
-                    <li key={el.id}>
-                        <span>email: {el.email}</span>
-                        <input
-                            onChange={(e) => {
-                                if (e.target.checked === true) {
-                                    setSelected((prev) => {
-                                        const newArr = [...prev];
-                                        newArr.push(el);
-                                        return newArr;
-                                    });
-                                    return;
-                                }
-
-                                setSelected((prev) => [...prev].filter((elem) => el.id !== elem.id));
-                            }}
-                            type="checkbox"
-                            name=""
-                            id=""
-                        />
-                        <input
-                            checked={checked.includes(el.email ?? '')}
-                            type="checkbox"
-                            name=""
-                            id=""
-                            readOnly
-                        />
-
-                    </li>
-                ))}
+        <div className="card-content">
+            <div className="card-header relative">
+                <button
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ['accounts'] })}
+                    className="absolute top-2 right-2 p-1 text-lg text-text-secondary hover:text-primary hover:bg-gray-100 rounded"
+                    aria-label="Reload accounts"
+                >
+                    ↻
+                </button>
+                <h2 className="text-xl font-semibold text-text-primary mb-2">Accounts</h2>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={handleCheck}
+                        disabled={checkAccountsMutation.isPending || accounts.length === 0}
+                        className="btn btn-secondary"
+                    >
+                        {checkAccountsMutation.isPending ? 'Checking...' : 'Check'}
+                    </button>
+                    <button
+                        onClick={() => {
+                            const allSelectable = accounts.map(acc => ({ ...acc, is_selected: true }));
+                            setSelected(allSelectable);
+                        }}
+                        disabled={accounts.length === selected.length}
+                        className="btn"
+                    >
+                        Select All
+                    </button>
+                    <button
+                        onClick={() => setSelected([])}
+                        disabled={selected.length === 0}
+                        className="btn"
+                    >
+                        Clear All
+                    </button>
+                </div>
             </div>
-            <button
-                onClick={async () => {
-                    await check(accounts);
-                    getAccounts();
-                }}
-            >
-                check
-            </button>
-            <button
-                onClick={() => {
-                    getAccounts();
-                }}
-            >
-                reload accounts
-            </button>
+
+            {isFetching ? (
+                <Loader />
+            ) : accounts.length === 0 ? (
+                <div className="empty-state">
+                    <p>No accounts found</p>
+                </div>
+            ) : (
+
+                <ul className="divide-y divide-gray-200 flex flex-wrap mt-6">
+                    {accounts.sort((a, b) => ("" + a.provider)?.localeCompare(b.provider + '')).map((account) => (
+                        <li key={account.id} className="border px-4 py-2 w-100 flex items-center justify-between">
+                            <div className="text-text-primary">{account.email}</div>
+                            <div className="item-actions">
+
+                                <div className="flex items-center space-x-4">
+                                    <div className="flex items-center">
+                                        <input
+                                            id={`select-${account.id}`}
+                                            type="checkbox"
+                                            checked={selected.some((a) => a.id === account.id)}
+                                            onChange={(e) => handleToggleAccount(account, e.target.checked)}
+                                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                        />
+                                        <label htmlFor={`select-${account.id}`} className="ml-2 text-[8px] text-text-secondary">
+                                            Select
+                                        </label>
+                                    </div>
+
+                                    <div className="flex items-center">
+                                        {checked.includes(account.email ?? '') ? (
+                                            <span className="inline-block w-2 h-2 bg-secondary rounded-full" />
+                                        ) : (
+                                            <span className="inline-block w-2 h-2 bg-gray-300 rounded-full" />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };
+
 export default Accounts;

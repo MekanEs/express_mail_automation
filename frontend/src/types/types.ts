@@ -1,33 +1,135 @@
 export type account = {
-  access_token: string | null
-  app_password: string | null
-  email: string | null
-  expires_at: number | null
-  id: string
-  is_token: boolean
-  provider: string | null
-  refresh_token: string | null
-  updated_at: string | null
-  user_id: string
-  isSelected?: boolean
+    access_token: string | null
+    app_password: string | null
+    email: string | null
+    expires_at: number | null
+    id: string
+    is_token: boolean
+    provider: string | null
+    refresh_token: string | null
+    updated_at: string | null
+    user_id: string
+    // isSelected?: boolean; // Перенесено в Selectable
 }
 export type accounts = account[]
 export type from_email = { created_at: string, email: string, id: number }
-export type report = {
-  account: string | null
-  created_at: string | null
-  emails_errorMessages: string[] | null
-  emails_errors: number | null
-  emails_found: number | null
-  emails_processed: number | null
-  id: string
-  inbox: string | null
-  links_attemptedOpen: number | null
-  links_errorMessages: string[] | null
-  links_errors: number | null
-  links_found: number | null
-  links_targetOpen: number | null
-  process_id: string | null
-  sender: string | null
-  status: string | null
+
+// Тип для отчета, совпадающий с бэкендом
+export type Report = {
+    id: string;
+    created_at: string | null;
+    process_id: string | null;
+    account: string | null;
+    sender: string | null;
+    inbox: string | null;
+    status: string | null; // 'success', 'failure', 'partial_failure', etc.
+    emails_found: number | null;
+    emails_processed: number | null;
+    links_found: number | null;
+    spam_found: number;
+    spam_moved: number;
+    links_attemptedOpen: number | null;
+    links_errors: number | null;
+    emails_errorMessages?: string[]; // Уточнить тип при необходимости
+}
+
+// Добавляем универсальный тип для элементов с флагом выбора
+export type Selectable<T> = T & { is_selected: boolean };
+
+// Создаем конкретные типы на его основе
+export type SelectableEmail = Selectable<from_email>;
+export type SelectableAccount = Selectable<account>;
+
+// Типы для API
+
+// Параметры для запроса отчетов
+export interface GetReportsParams {
+    page?: number;
+    limit?: number;
+    sort_by?: string; // Поле для сортировки
+    sort_order?: 'asc' | 'desc'; // Направление сортировки
+    filter_status?: string;
+    filter_account?: string;
+    filter_process_id?: string;
+}
+
+// Группа отчетов (возвращается бэкендом)
+export interface ReportGroup {
+    processId: string;
+    reports: Report[];
+}
+
+// Структура ответа для пагинированных отчетов
+export interface PaginatedReportsResponse {
+    data: ReportGroup[];
+    pagination: Pagination;
+}
+
+// Тип для пагинации
+export interface Pagination {
+    page: number;
+    limit: number;
+    total: number; // Общее количество ГРУПП
+    pages: number; // Общее количество страниц ГРУПП
+}
+
+
+// Тип для тела запроса на запуск процесса (совпадает с бэкендом)
+export interface ProcessRequestBody {
+    accounts: account[]; // Используем базовый тип account
+    emails: string[]; // Backend likely only needs the email addresses
+    limit?: number;
+    openRate?: number;
+
+}
+
+// Тип ответа при запуске процесса
+export interface StartProcessResponse {
+    process_id: string;
+    message: string;
+}
+
+// Тип ответа для статуса процесса (совпадает с бэкендом)
+export interface ProcessStatus {
+    id: string;
+    status: 'in_progress' | 'completed' | 'failed' | 'partial_success' | 'not_found'; // Добавил возможные статусы
+    metrics: {
+        total: number;
+        emailsFound: number;
+        emailsProcessed: number;
+        success: number;
+        failed: number;
+        partialSuccess: number;
+    };
+    details: Report[];
+}
+
+// Тип для метрик дашборда (совпадает с бэкендом)
+export interface DashboardMetrics {
+    summary: {
+        totalReports: number;
+        totalEmailsFound: number;
+        totalEmailsProcessed: number;
+        successRate: number;
+    };
+    recentProcesses: {
+        process_id: string;
+        created_at: string;
+    }[];
+    accountsStats: Record<string, {
+        total: number;
+        success: number;
+        failure: number;
+        partial: number; // Добавил поле partial из бэкенда
+    }>;
+}
+
+// Параметры для запроса экспорта
+export interface ExportReportsParams {
+    format?: 'csv' | 'json';
+    process_id?: string;
+    filter_status?: string;
+    filter_account?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
 }

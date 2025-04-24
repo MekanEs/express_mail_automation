@@ -12,6 +12,8 @@
       "path": "./frontend",
       "name": "frontend"
     }
-  ]
+  ],
+  "settings": {
+  }
   // you can add other settings here
 }

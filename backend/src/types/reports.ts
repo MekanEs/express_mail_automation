@@ -3,6 +3,10 @@ export interface ProcessReport {
     status: 'success' | 'partial_failure' | 'failure';
     account: string;
     sender: string;
+    spam: {
+        found: number;
+        moved: number;
+    }
     emails: {
         found: number;
         processed: number;

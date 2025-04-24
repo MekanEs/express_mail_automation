@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import fromEmails from './fromEmails';
-import process from './process';
-import accounts from './accounts';
-import checkAccounts from './checkAccounts';
-import reports from './reports';
+import fromEmails from './from-emails.route';
+import process from './process.route';
+import accounts from './accounts.route';
+import checkAccounts from './check-accounts.route';
+import reports from './reports.route';
+import dashboardRoutes from './dashboard.route';
 
 const mainRouter = Router();
 
@@ -12,6 +13,7 @@ mainRouter.use('/api/process', process);
 mainRouter.use('/api/accounts', accounts);
 mainRouter.use('/api/checkAccounts', checkAccounts);
 mainRouter.use('/api/reports', reports);
+mainRouter.use('/api/dashboard', dashboardRoutes);
 
 mainRouter.use('/api', (request, response) => {
   response.json({ message: 'IMAP Processor API is running' });
