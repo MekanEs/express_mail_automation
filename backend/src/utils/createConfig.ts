@@ -4,12 +4,13 @@ export function createImapConfig({
   user,
   host,
   password,
-  token
+  token,
 }: {
   user: string;
   host: string;
   password?: string;
   token?: string;
+  verifyOnly?: boolean
 }): ImapFlowOptions {
   let authConfig: ImapFlowOptions['auth'] & { loginMethod?: string; method?: string } = {
     user: user,

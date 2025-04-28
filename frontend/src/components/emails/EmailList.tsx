@@ -78,7 +78,7 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
     }; const selectedEmailsSet = new Set(selected.map(s => s.email));
     return (
         <div className="card-content mt-4">
-            <div className="card-header">
+            <div className="card-header mb-4">
                 <h2 className="text-xl font-semibold text-text-primary">Email Addresses</h2>
             </div>
 
@@ -107,9 +107,9 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
                     <p className="text-sm">Add an email to get started</p>
                 </div>
             ) : (
-                <ul className="divide-y divide-gray-200">
+                <ul className="flex flex-wrap gap-2 *:bg-gray-100">
                     {emails.map((email) => (
-                        <li key={email.id} className="email-list-item flex justify-between items-center mt-2 mb-2">
+                        <li key={email.id} className="email-list-item flex justify-between items-center mt-2 mb-2 grow-1 w-100 rounded p-2">
                             <span className="text-text-primary">{email.email}</span>
                             <div className="item-actions flex gap-2 items-center">
                                 <input

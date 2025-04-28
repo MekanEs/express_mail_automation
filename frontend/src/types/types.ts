@@ -1,18 +1,19 @@
-export type account = {
-    access_token: string | null
-    app_password: string | null
-    email: string | null
-    expires_at: number | null
-    id: string
-    is_token: boolean
-    provider: string | null
-    refresh_token: string | null
-    updated_at: string | null
-    user_id: string
-    // isSelected?: boolean; // Перенесено в Selectable
-}
-export type accounts = account[]
-export type from_email = { created_at: string, email: string, id: number }
+import { Database } from './database.types';
+type Tables = Database['public']['Tables'];
+export type account = Tables['user_accounts']['Row'];
+
+export type accounts = account[];
+export type from_email = Tables['from_emails']['Row'];
+
+export type report = Tables['reports']['Row'];
+export type Provider = Database['public']['Enums']['Provider'];
+export type ProviderConfig = {
+    host: string;
+    mailboxes: string[];
+    spam: string[];
+};
+
+export type ProviderConfigsType = Record<Provider, ProviderConfig>;
 
 // Тип для отчета, совпадающий с бэкендом
 export type Report = {
@@ -31,7 +32,7 @@ export type Report = {
     links_attemptedOpen: number | null;
     links_errors: number | null;
     emails_errorMessages?: string[]; // Уточнить тип при необходимости
-}
+};
 
 // Добавляем универсальный тип для элементов с флагом выбора
 export type Selectable<T> = T & { is_selected: boolean };
@@ -73,14 +74,12 @@ export interface Pagination {
     pages: number; // Общее количество страниц ГРУПП
 }
 
-
 // Тип для тела запроса на запуск процесса (совпадает с бэкендом)
 export interface ProcessRequestBody {
     accounts: account[]; // Используем базовый тип account
     emails: string[]; // Backend likely only needs the email addresses
     limit?: number;
     openRate?: number;
-
 }
 
 // Тип ответа при запуске процесса
@@ -116,12 +115,15 @@ export interface DashboardMetrics {
         process_id: string;
         created_at: string;
     }[];
-    accountsStats: Record<string, {
-        total: number;
-        success: number;
-        failure: number;
-        partial: number; // Добавил поле partial из бэкенда
-    }>;
+    accountsStats: Record<
+        string,
+        {
+            total: number;
+            success: number;
+            failure: number;
+            partial: number; // Добавил поле partial из бэкенда
+        }
+    >;
 }
 
 // Параметры для запроса экспорта

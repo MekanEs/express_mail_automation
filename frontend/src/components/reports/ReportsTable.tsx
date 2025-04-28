@@ -51,17 +51,17 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
 
                     {/* Таблица для группы */}
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200 border border-gray-100">
                             {reports.length > 0 ? (
                                 <thead className="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('account')}>Account{renderSortArrow('account')}</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('sender')}>Sender{renderSortArrow('sender')}</th>
+                                    <tr className='divide-x divide-gray-100 *:px-4 *:py-3 *:text-left *:text-xs *:font-medium *:text-gray-500 *:uppercase *:tracking-wider *:cursor-pointer'>
+                                        <th scope="col" onClick={() => onSortChange('account')}>Account{renderSortArrow('account')}</th>
+                                        <th scope="col" onClick={() => onSortChange('sender')}>Sender{renderSortArrow('sender')}</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inbox</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('status')}>Status{renderSortArrow('status')}</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('emails_found')}>Found{renderSortArrow('emails_found')}</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('emails_processed')}>Processed{renderSortArrow('emails_processed')}</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => onSortChange('created_at')}>Date{renderSortArrow('created_at')}</th>
+                                        <th scope="col" onClick={() => onSortChange('status')}>Status{renderSortArrow('status')}</th>
+                                        <th scope="col" onClick={() => onSortChange('emails_found')}>Found{renderSortArrow('emails_found')}</th>
+                                        <th scope="col" onClick={() => onSortChange('emails_processed')}>Processed{renderSortArrow('emails_processed')}</th>
+                                        <th scope="col" onClick={() => onSortChange('created_at')}>Date{renderSortArrow('created_at')}</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links Opened</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spam Found</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spam Moved</th>
@@ -70,24 +70,24 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {reports.length > 0 ? (
                                     reports.map((item: Report) => (
-                                        <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.account}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.sender}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.inbox}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        <tr key={item.id} className="divide-x divide-gray-200 transition duration-300 ease hover:bg-blue-100 *:px-4 *:py-2 *:whitespace-nowrap *:text-sm">
+                                            <td className=" font-medium text-gray-900">{item.account}</td>
+                                            <td className="text-gray-500">{item.sender}</td>
+                                            <td className="text-gray-500">{item.inbox}</td>
+                                            <td className="">
                                                 <StatusBadge status={item.status} />
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{item.emails_found ?? 0}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{item.emails_processed ?? 0}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(item.created_at)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="text-gray-500 text-center">{item.emails_found ?? 0}</td>
+                                            <td className="text-gray-500 text-center">{item.emails_processed ?? 0}</td>
+                                            <td className="text-gray-500">{formatDate(item.created_at)}</td>
+                                            <td className="text-gray-500">
                                                 {item.links_attemptedOpen ?? 0}/{item.links_found ?? 0}
                                                 {item.links_errors != null && item.links_errors > 0 && (
                                                     <span className="text-red-600 ml-1 font-medium">({item.links_errors} err)</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{item.spam_found ?? 0}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{item.spam_moved ?? 0}</td>
+                                            <td className="text-gray-500 text-center">{item.spam_found ?? 0}</td>
+                                            <td className="text-gray-500 text-center">{item.spam_moved ?? 0}</td>
                                         </tr>
                                     ))
                                 ) : (

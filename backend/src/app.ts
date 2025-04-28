@@ -1,8 +1,7 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, } from 'express';
 import path from 'path';
 import mainRouter from './routes';
 import cors from 'cors';
-import { errorMiddleware } from './utils/error-handler';
 
 const app = express();
 
@@ -25,18 +24,11 @@ app.get('*', (_, res) => {
   res.sendFile(path.join(staticPath, 'index.html'));
 });
 
-// Middleware для обработки 404 (если ни один маршрут не подошел)
-app.use((req: Request, res: Response, next: NextFunction) => {
-    // Создаем ошибку 404 и передаем ее дальше
-    const error = new Error('Not Found');
-    (error as any).status = 404;
-    next(error);
+app.use((req: Request, res: Response,) => {
+  res.status(404).send()
 });
 
-// Глобальный обработчик ошибок (принимает 4 аргумента)
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    // Используем импортированный errorMiddleware
-    errorMiddleware(err, req, res, next);
-});
+
+
 
 export default app;

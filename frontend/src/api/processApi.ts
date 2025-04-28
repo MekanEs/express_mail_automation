@@ -1,12 +1,12 @@
-import { 
-    ProcessRequestBody, 
-    StartProcessResponse, 
-   
+import {
+    ProcessRequestBody,
+    StartProcessResponse,
+
 } from "../types/types";
 import { handleApiResponse } from "../utils/apiUtils";
 
 // Базовый URL API (можно вынести в переменные окружения)
-const API_URL = 'http://localhost:3002/api';  // Предполагаем, что Vite настроен на проксирование
+const API_URL = 'http://localhost:3003/api';  // Предполагаем, что Vite настроен на проксирование
 
 /**
  * Запуск нового процесса обработки

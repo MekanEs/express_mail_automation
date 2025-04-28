@@ -96,16 +96,25 @@ export const ReportsPage = () => {
     }, []);
 
     const handleSortChange = useCallback((newSortBy: string) => {
-        setSortBy(prevSortBy => {
-            if (prevSortBy === newSortBy) {
-                setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-            } else {
-                setSortOrder('desc');
-            }
-            return newSortBy;
-        });
+        // setSortBy(prevSortBy => {
+        //     if (prevSortBy === newSortBy) {
+        //         setSortOrder(prev => {
+        //             console.log(prev)
+        //             return prev === 'asc' ? 'desc' : 'asc'
+        //         })
+        //     }
+        //     return newSortBy;
+        // });
+        if (newSortBy === sortBy) {
+            setSortOrder(prev => {
+                console.log(prev)
+                return prev === 'asc' ? 'desc' : 'asc'
+            })
+        } else {
+            setSortBy(newSortBy)
+        }
         setCurrentPage(1);
-    }, []);
+    }, [sortBy]);
 
     // Рендеринг
     return (

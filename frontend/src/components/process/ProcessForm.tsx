@@ -26,7 +26,6 @@ export const ProcessForm: FC<ProcessFormProps> = ({
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         // --- Валидация ---
         if (selectedAccounts.length === 0) {
             toast.error('Please select at least one account.');

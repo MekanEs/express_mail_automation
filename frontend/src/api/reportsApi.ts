@@ -4,7 +4,7 @@ import {
     ExportReportsParams
 } from "../types/types";
 
-const API_URL = 'http://localhost:3002/api'; // Убедитесь, что URL правильный
+const API_URL = 'http://localhost:3003/api'; // Убедитесь, что URL правильный
 
 // Функция для получения отчетов с пагинацией, сортировкой и фильтрацией
 export const getReports = async (
@@ -55,12 +55,12 @@ export const exportReports = async (
         // Попытка прочитать ошибку как текст или JSON
         let errorMessage = `Failed to export reports: ${response.statusText}`;
         try {
-             const errorData = await response.json();
-             errorMessage = errorData.message || errorMessage;
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
         } catch (e) {
             try {
-                 const errorText = await response.text();
-                 errorMessage = errorText || errorMessage;
+                const errorText = await response.text();
+                errorMessage = errorText || errorMessage;
             } catch (e2) { /* Ignore */ }
         }
         throw new Error(errorMessage);
@@ -68,4 +68,4 @@ export const exportReports = async (
 
     // Возвращаем тело ответа как Blob
     return await response.blob();
-}; 
+};
