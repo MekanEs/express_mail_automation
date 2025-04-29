@@ -27,6 +27,7 @@ type processMailBoxArgs = {
     openRate?: number;
     password?: string;
     token?: string;
+    repliesCount: number;
 };
 export async function processMailbox({
     user,
@@ -39,12 +40,12 @@ export async function processMailbox({
     process_id,
     openRate,
     password,
-    token
+    token, repliesCount
 }: processMailBoxArgs) {
     if (!openRate) {
         openRate = 70;
     }
-    let repliesCount = 2
+
     const config = createImapConfig({ user, host, password, token });
     logger.info(config)
     const client = new ImapFlow(config);
@@ -80,7 +81,7 @@ export async function processMailbox({
         });
         const replies: {
             path: string;
-            mimeMessage: string;
+            mimeMessage: Buffer;
             flags: string[];
         }[] = []
         for (const inbox of mailboxes) {
@@ -154,7 +155,7 @@ export async function processMailbox({
                 logger.info('appending reply', reply.path, reply.flags)
                 const res = await client.append(reply.path, reply.mimeMessage, reply.flags)
                 logger.info('reply appended', res)
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 1 second
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 second
 
             } catch (err) {
                 handleError(err, 'error during reply append', 'append')

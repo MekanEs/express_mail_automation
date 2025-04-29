@@ -23,12 +23,16 @@
   "homepage": "https://github.com/MekanEs/express_mail_automation#readme",
   "description": "",
   "devDependencies": {
+    "@types/nodemailer": "^6.4.17",
     "@types/papaparse": "^5.3.15",
     "concurrently": "^9.1.2",
     "supabase": "^2.20.12"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.5",
     "cors": "^2.8.5",
+    "html-to-text": "^9.0.5",
+    "nodemailer": "^6.10.1",
     "papaparse": "^5.5.2",
     "puppeteer": "^24.6.1"
   }

@@ -26,13 +26,13 @@ export async function handleBrowser({
     try {
         for (const mail of ProcessObject) {
             const delay = Math.floor(Math.random() * 2000);
-            let page = await createPage(browser)
+            const page = await browser.newPage();
             await openMail(page, mail, report,)
 
 
 
             if (shouldOpenCount > 0) {
-                page = await createPage(browser)
+                const page = await browser.newPage();
                 await openLink(report, page, mail)
                 shouldOpenCount -= 1;
             }
@@ -48,14 +48,7 @@ export async function handleBrowser({
         if (browser) await browser.close();
     }
 }
-const createPage = async (browser: Browser,) => {
-    const page = await browser.newPage();
-    await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-    );
 
-    return page
-}
 
 const openMail = async (page: Page, mail: {
     file: string;

@@ -22,6 +22,7 @@ export interface ProcessRequestBody {
   emails: string[];
   limit?: number;
   openRate?: number;
+  repliesCount?: number;
 }
 
 // Тип для метрик дашборда

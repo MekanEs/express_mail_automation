@@ -9,7 +9,7 @@ class ProcessController {
     req: Request<Record<string, string>, Record<string, string>, ProcessRequestBody>,
     res: Response
   ): Promise<void> {
-    const { accounts, emails, limit = 100, openRate = 70 } = req.body;
+    const { accounts, emails, limit = 100, openRate = 70, repliesCount = 0 } = req.body;
 
     const process_id = uuidv4();
 
@@ -27,7 +27,8 @@ class ProcessController {
           outputPath: 'files',
           ...(account.is_token
             ? { token: account.access_token || '' }
-            : { password: account.app_password || '' })
+            : { password: account.app_password || '' }),
+          repliesCount
         };
         try {
           await processMailbox(processParams);

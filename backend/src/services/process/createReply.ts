@@ -1,38 +1,68 @@
 import { FetchMessageObject, ImapFlow } from "imapflow";
-import { logger } from "../../utils/logger";
+// import { logger } from "../../utils/logger";
+import MailComposer from "nodemailer/lib/mail-composer"
 import { handleError } from "../../utils/error-handler";
-const texts = ['Здравствуйте, Не следует, однако, забывать, что высококачественный прототип будущего проекта является качественно новой ступенью дальнейших направлений развития. Как уже неоднократно упомянуто, реплицированные с зарубежных источников, современные исследования ассоциативно распределены по отраслям. Современные технологии достигли такого уровня, что социально-экономическое развитие является качественно новой ступенью модели развития.',
-    'Здравствуйте, Являясь всего лишь частью общей картины, некоторые особенности внутренней политики неоднозначны и будут превращены в посмешище, хотя само их существование приносит несомненную пользу обществу. Как принято считать, предприниматели в сети интернет будут заблокированы в рамках своих собственных рациональных ограничений. Являясь всего лишь частью общей картины, представители современных социальных резервов лишь добавляют фракционных разногласий и объективно рассмотрены соответствующими инстанциями.',
-    'Здравствуйте, Современные технологии достигли такого уровня, что убеждённость некоторых оппонентов не оставляет шанса для вывода текущих активов. Для современного мира сплочённость команды профессионалов способствует повышению качества прогресса профессионального сообщества. Лишь представители современных социальных резервов будут обнародованы.']
+import { simpleParser } from 'mailparser';
+const warmupReplies = [
+    'Благодарю за информацию. Обязательно учту в дальнейшей работе.',
+    'Получил письмо, всё на месте. Если потребуется — уточню.',
+    'Спасибо, сообщение дошло без проблем. Сохраню для дальнейшего использования.',
+    'Информация принята, при необходимости свяжусь с вами повторно.',
+    'Ознакомился с содержанием письма. Благодарю за оперативность.',
+    'Данные получены, проверю и дам обратную связь при необходимости.',
+    'Сообщение получено, никаких вопросов на данный момент нет.',
+    'Письмо пришло, буду использовать как справочный материал.',
+    'Спасибо за уведомление. Вижу всё в порядке.',
+    'Отметил полученное письмо, вернусь к нему позже.',
+    'Информация поступила. Принято к сведению.',
+    'Письмо получено. Спасибо, всё понятно.',
+    'Спасибо, получил. Свяжусь, если будут дополнительные вопросы.',
+    'Подтверждаю получение письма. На текущий момент всё ясно.',
+    'Информация получена, дальнейшие действия не требуются. Благодарю.'
+];
+
+
 export const createReply = async (client: ImapFlow, message: FetchMessageObject, user: string) => {
     try {
 
         if (!message?.envelope) throw new Error('Envelope not found');
 
-        const fromAddress = message.envelope.to[0].address; // От кого оригинал пришел
-        const toAddress = message.envelope.from[0].address; // Кому отправлять (ответ)
-        const text = texts[Math.floor(Math.random() * (texts.length - 1))]
+        const toAddress = message.envelope.from[0].address;
+        const text = warmupReplies[Math.floor(Math.random() * (warmupReplies.length - 1))]
+        const parsed = await simpleParser(message.source);
+        const qoutedHtml = `здравствуйте,\n${text}\n\n${message.envelope.from[0].name || ''}<${toAddress}>:\n\n<blackquote>${parsed.html}</blackquote>`
 
-        const mimeContent = [
-            `From: ${user}`,
-            `To: ${fromAddress}`,
-            `Subject: Re: ${message.envelope.subject}`,
-            `In-Reply-To: ${message.envelope.messageId}`,
-            `References: ${message.envelope.messageId}`,
-            `Date: ${new Date().toUTCString()}`,
-            `MIME-Version: 1.0`,
-            `Content-Type: text/plain; charset=UTF-8`,
-            ``,
-            text
-        ].join('\r\n');
+        const qoutedText = `здравствуйте,
+         ${message.envelope.from[0].name || ''}<${toAddress}>:\n
+        ${text}\n\n>${parsed.text}`
 
+        const mail = new MailComposer({
+            from: user,
+            to: toAddress,
+            subject: `Re: ${message.envelope.subject}`,
+            inReplyTo: `${message.envelope.messageId}`,
+            references: `${message.envelope.messageId}`,
+            date: `${new Date().toUTCString()}`,
+            text: qoutedText,
+            html: qoutedHtml
+        });
+
+        const mimeMessageBuffer = await new Promise<Buffer>((resolve, reject) => {
+            mail.compile().build((err, message) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(message);
+                }
+            });
+        });
         const mailboxes = await client.list();
         const draftsMailbox = mailboxes.find(box => box.specialUse === '\\Drafts'
             || box.path.toLowerCase().includes('draft')
             || box.specialUse === '\\Черновики')
 
         if (!draftsMailbox) throw new Error('Drafts folder not found');
-        return { path: draftsMailbox.path, mimeMessage: mimeContent, flags: ['\\Draft'] }
+        return { path: draftsMailbox.path, mimeMessage: mimeMessageBuffer, flags: ['\\Draft'] }
     } catch (err) {
         console.error('Ошибка при создании ответа:', err);
         handleError(err, '', 'createReply')

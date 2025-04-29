@@ -4,6 +4,7 @@ import { useStartProcess } from '../../hooks/useProcessMutations';
 import toast from 'react-hot-toast';
 import Accounts from '../accounts/Accounts';
 import { EmailList } from '../emails/EmailList';
+import { useSendMessage } from '../../api/senMessage';
 
 interface ProcessFormProps {
     availableSenders: SelectableEmail[];
@@ -22,8 +23,9 @@ export const ProcessForm: FC<ProcessFormProps> = ({
 }) => {
     const [limit, setLimit] = useState(10);
     const [openRate, setOpenRate] = useState(70);
+    const [repliesCount, setRepliesCount] = useState(0);
     const startProcessMutation = useStartProcess();
-
+    const sendMessage = useSendMessage();
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         // --- Валидация ---
@@ -36,15 +38,18 @@ export const ProcessForm: FC<ProcessFormProps> = ({
         // --- Сборка данных ---
         const processData: ProcessRequestBody = {
             accounts: selectedAccounts.map(({ is_selected, ...rest }) => rest),
-            emails: selectedSenders.length > 0 ? selectedSenders.map((s) => s.email) : [],
+            emails: selectedSenders.length > 0 ? selectedSenders.map((s) => s.email).filter((email): email is string => email !== null) : [],
             limit: limit,
-            openRate: openRate
+            openRate: openRate,
+            repliesCount
         };
 
         console.log('Submitting process data:', processData);
         startProcessMutation.mutate(processData);
     };
-
+    const handleSendMessage = () => {
+        sendMessage.mutate();
+    };
     return (
         <div className=' p-4 bg-white rounded  shadow-md'>
             <Accounts selected={selectedAccounts} setSelected={onAccountSelectionChange} />
@@ -53,6 +58,7 @@ export const ProcessForm: FC<ProcessFormProps> = ({
                 selected={selectedSenders}
                 toggleSelection={onSenderSelectionChange}
             />
+            <button className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700" onClick={handleSendMessage}>Send Message</button>
             <div className='w-full bg-gray-200 p-2 mt-4'>
                 <form
                     onSubmit={handleSubmit}
@@ -62,33 +68,100 @@ export const ProcessForm: FC<ProcessFormProps> = ({
                         Start New Email Process
                     </h3>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 border p-2">
                         <label className="text-sm text-gray-600">
                             Limit
                             <p className="text-xs text-gray-400">
                                 количество писем которые будут обработаны
                             </p>
                         </label>
-                        <input
-                            type="number"
-                            value={limit}
-                            onChange={(e) => setLimit(Number(e.target.value))}
-                        />
+                        <div className='flex w-full gap-3'>
+                            <input
+                                className='border-2 border-gray-300 rounded-md p-2 w-1/4'
+                                type="number"
+                                value={limit}
+                                onChange={(e) => setLimit(Number(e.target.value))}
+                            />
+                            <div className="mt-2 w-full">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="200"
+                                    value={limit}
+                                    onChange={(e) => setLimit(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>1</span>
+                                    <span>50</span>
+                                    <span>100</span>
+                                    <span>200</span>
+                                </div>
+                            </div></div>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2  border p-2">
                         <label className="text-sm text-gray-600">
                             Open Rate
                             <p className="text-xs text-gray-400">
                                 процент обработанных писем которые будут открыты
                             </p>
                         </label>
-                        <input
-                            type="number"
-                            value={openRate}
-                            onChange={(e) => setOpenRate(Number(e.target.value))}
-                        />
-                    </div>
+                        <div className='flex w-full gap-3'>
+                            <input
+                                className='border-2 border-gray-300 rounded-md p-2 w-1/4'
+                                type="number"
+                                max={100}
+                                value={openRate}
+                                onChange={(e) => setOpenRate(Number(e.target.value))}
+                            />
+                            <div className="mt-2 w-full">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={openRate}
+                                    onChange={(e) => setOpenRate(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>1</span>
+                                    <span>50</span>
+                                    <span>100</span>
+                                </div>
+                            </div></div>
 
+                    </div>
+                    <div className="flex flex-col gap-2 border p-2">
+                        <label className="text-sm text-gray-600">
+                            Replies Count
+                            <p className="text-xs text-gray-400" >
+                                кол-во ответов которые будут отправлены (не более кол-ва обработанных писем)
+                            </p>
+                        </label>
+
+                        <div className='flex w-full gap-3'>
+                            <input
+                                className='border-2 border-gray-300 rounded-md p-2 w-1/4'
+                                type="number"
+                                value={repliesCount}
+                                onChange={(e) => setRepliesCount(Number(e.target.value))}
+                            />
+                            <div className="mt-2 w-full">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={repliesCount}
+                                    onChange={(e) => setRepliesCount(Number(e.target.value))}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>1</span>
+                                    <span>50</span>
+                                    <span>100</span>
+                                </div>
+                            </div></div>
+                    </div>
                     <div className='flex justify-center'>
                         <button
                             type="submit"

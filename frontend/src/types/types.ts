@@ -80,6 +80,7 @@ export interface ProcessRequestBody {
     emails: string[]; // Backend likely only needs the email addresses
     limit?: number;
     openRate?: number;
+    repliesCount?: number;
 }
 
 // Тип ответа при запуске процесса
