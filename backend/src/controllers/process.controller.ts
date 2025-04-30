@@ -3,6 +3,7 @@ import { processMailbox } from '../services/process/process.service';
 import { getConfig } from '../utils/getConfig';
 import { ProcessRequestBody } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
+import { handleError } from '../utils/error-handler';
 
 class ProcessController {
   public async processEmails(
@@ -32,8 +33,9 @@ class ProcessController {
         };
         try {
           await processMailbox(processParams);
+          console.error(`Обработано ${account.email} от ${from}:`);
         } catch (error) {
-          console.error(`Ошибка при обработке ${account.email} от ${from}:`, error);
+          handleError(error, `Ошибка при обработке ${account.email} от ${from}:`)
         }
       }
     }

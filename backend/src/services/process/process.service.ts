@@ -14,6 +14,7 @@ import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { markMessagesAsSeen } from './utils/markMessagesAsSeen';
 import { createReply } from './createReply';
+import { report } from 'process';
 
 type processMailBoxArgs = {
     user: string;
@@ -168,6 +169,7 @@ export async function processMailbox({
         } else {
             report.status = 'partial_failure';
         }
+
         await sendReport({ from, inbox: mailboxes.join(', '), process_id, report, user });
     } catch (err) {
         logger.error('Error during initial client.connect():', err, user); // More specific catch
@@ -179,6 +181,7 @@ export async function processMailbox({
 
         // Логирование
         logger.info('Отключение завершено.');
+
     }
 }
 
