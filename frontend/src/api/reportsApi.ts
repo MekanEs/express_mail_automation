@@ -1,8 +1,9 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     GetReportsParams,
     PaginatedReportsResponse,
-    ExportReportsParams
 } from "../types/types";
+import toast from "react-hot-toast";
 
 const API_URL = 'http://localhost:3003/api'; // Убедитесь, что URL правильный
 
@@ -32,40 +33,40 @@ export const getReports = async (
 
     return await response.json();
 };
-
+export type DeleteReportsParams = {
+    process_id: string;
+};
 // Функция для запроса экспорта отчетов
-export const exportReports = async (
-    params: ExportReportsParams = {}
-): Promise<Blob> => {
-    const queryParams = new URLSearchParams();
-    // Добавляем все параметры фильтрации и сортировки, как в getReports
-    if (params.format) queryParams.append('format', params.format);
-    if (params.process_id) queryParams.append('process_id', params.process_id);
-    if (params.filter_status) queryParams.append('filter_status', params.filter_status);
-    if (params.filter_account) queryParams.append('filter_account', params.filter_account);
-    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
-    if (params.sort_order) queryParams.append('sort_order', params.sort_order);
-
-    const queryString = queryParams.toString();
-    const url = `${API_URL}/reports/export${queryString ? `?${queryString}` : ''}`;
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        // Попытка прочитать ошибку как текст или JSON
-        let errorMessage = `Failed to export reports: ${response.statusText}`;
-        try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-            try {
-                const errorText = await response.text();
-                errorMessage = errorText || errorMessage;
-            } catch (e2) { /* Ignore */ }
+export const deleteReports = async (
+    params: DeleteReportsParams
+): Promise<void> => {
+    const url = `${API_URL}/reports/delete`;
+    const response = await fetch(url, {
+        method: 'DELETE',
+        body: JSON.stringify(params),
+        headers: {
+            'Content-Type': 'application/json'
         }
-        throw new Error(errorMessage);
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to delete reports: ${response.statusText}`);
     }
+    return await response.json();
+};
 
-    // Возвращаем тело ответа как Blob
-    return await response.blob();
+
+export const useDeleteReports = () => {
+    const queryClient = useQueryClient();
+    const { mutate: runDeleteReports, isPending: isDeleting } = useMutation({
+        mutationFn: (params: DeleteReportsParams) => deleteReports(params),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['reports'] });
+        },
+        onError: (error) => {
+            console.error("Error deleting reports:", error);
+            toast.error(`Failed to delete reports: ${error.message}`);
+        },
+    });
+    return { deleteReports: runDeleteReports, isDeleting };
 };

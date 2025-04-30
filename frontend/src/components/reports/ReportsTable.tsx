@@ -2,12 +2,16 @@ import React from 'react';
 import { Report, ReportGroup } from '../../types/types';
 import { formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../utils/uiHelpers';
+import { UseMutateFunction } from '@tanstack/react-query';
+import { DeleteReportsParams } from '../../api/reportsApi';
 
 interface ReportsTableProps {
     reportGroups: ReportGroup[];
     sortBy: string;
     sortOrder: 'asc' | 'desc';
     onSortChange: (newSortBy: string) => void;
+    deleteReports: UseMutateFunction<void, Error, DeleteReportsParams, unknown>
+    isDeleting: boolean;
 }
 
 export const ReportsTable: React.FC<ReportsTableProps> = ({
@@ -15,6 +19,8 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
     sortBy,
     sortOrder,
     onSortChange,
+    deleteReports,
+    isDeleting,
 }) => {
 
     // Функция для рендеринга иконки сортировки
@@ -97,6 +103,15 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            disabled={isDeleting}
+                            onClick={() => deleteReports({ process_id: processId })}
+                            className="btn btn-danger"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
                     </div>
                 </div>
             ))}

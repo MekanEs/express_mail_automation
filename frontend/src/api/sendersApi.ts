@@ -13,7 +13,7 @@ export const getFromEmails = async (): Promise<from_email[]> => {
     const data = await checkedResponse.json();
 
     // Проверяем, содержит ли ответ поле data (как от Supabase)
-    if (data && typeof data === 'object' && data.hasOwnProperty('data')) {
+    if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'data')) {
         if (data.error) {
             console.error("API error fetching sender emails:", data.error);
             throw new Error(data.error.message || 'Failed to fetch sender emails');

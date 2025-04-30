@@ -27,7 +27,7 @@ export const sendMessage = async (): Promise<ResponseType> => {
 export const useSendMessage = () => {
     return useMutation<ResponseType, Error>({
         mutationFn: sendMessage,
-        onSuccess: (data) => {
+        onSuccess: () => {
             toast.success(`Email sent successfully!`);
         },
         onError: (error) => {

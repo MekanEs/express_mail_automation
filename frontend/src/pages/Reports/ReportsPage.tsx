@@ -1,8 +1,7 @@
-import { useQuery, useMutation, } from "@tanstack/react-query";
+import { useQuery, } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
-import { getReports, exportReports } from "../../api/reportsApi";
-import { Report, ReportGroup, GetReportsParams, ExportReportsParams, PaginatedReportsResponse, Pagination } from "../../types/types";
-import { saveAs } from 'file-saver';
+import { getReports, useDeleteReports, } from "../../api/reportsApi";
+import { Report, ReportGroup, GetReportsParams, PaginatedReportsResponse, Pagination } from "../../types/types";
 import { PaginationComponent } from "../../components/common/Pagination";
 import { ReportsTable } from "../../components/reports/ReportsTable";
 import { ReportsFilterPanel } from "../../components/reports/ReportsFilterPanel";
@@ -26,7 +25,7 @@ export const ReportsPage = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [onlyFound, setOnlyFound] = useState(true);
 
-
+    const { deleteReports, isDeleting } = useDeleteReports();
     // Параметры запроса
     const queryParams: GetReportsParams = useMemo(() => ({
         page: currentPage,
@@ -50,28 +49,7 @@ export const ReportsPage = () => {
         placeholderData: (previousData) => previousData,
     });
 
-    // Экспорт
-    const exportMutation = useMutation<Blob, Error, ExportReportsParams>({
-        mutationFn: exportReports,
-        onSuccess: (blob, variables) => {
-            const filename = `reports_export.${variables.format || 'csv'}`;
-            saveAs(blob, filename);
-        },
-        onError: (err) => {
-            console.error("Export failed:", err);
-            alert(`Export failed: ${err.message}`);
-        },
-    });
 
-    const handleExport = (format: 'csv' | 'json') => {
-        const exportParams: ExportReportsParams = {
-            format,
-            sort_by: sortBy,
-            sort_order: sortOrder,
-            ...filters,
-        };
-        exportMutation.mutate(exportParams);
-    };
 
     // Локальная фильтрация
     const displayData: ReportGroup[] = useMemo(() => {
@@ -147,22 +125,7 @@ export const ReportsPage = () => {
                         </button>
                     </div>
                     {/* Кнопки экспорта */}
-                    <div className="flex space-x-2">
-                        <button
-                            onClick={() => handleExport('csv')}
-                            className="px-4 py-2 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                            disabled={exportMutation.isPending || (response?.data?.length ?? 0) === 0}
-                        >
-                            {exportMutation.isPending ? 'Exporting...' : 'Export CSV'}
-                        </button>
-                        <button
-                            onClick={() => handleExport('json')}
-                            className="px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                            disabled={exportMutation.isPending || (response?.data?.length ?? 0) === 0}
-                        >
-                            {exportMutation.isPending ? 'Exporting...' : 'Export JSON'}
-                        </button>
-                    </div>
+
                 </div>
             </div>
 
@@ -178,6 +141,8 @@ export const ReportsPage = () => {
                         </div>
                     ) : (
                         <ReportsTable
+                            isDeleting={isDeleting}
+                            deleteReports={deleteReports}
                             reportGroups={displayData}
                             sortBy={sortBy}
                             sortOrder={sortOrder}
