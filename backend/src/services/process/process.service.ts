@@ -1,5 +1,5 @@
 import path from 'path';
-import { ImapFlow } from 'imapflow';
+import { FetchMessageObject, ImapFlow } from 'imapflow';
 import { createImapConfig } from '../../utils/createConfig';
 import { ProcessReport } from '../../types/reports';
 import { createDir } from './utils/createDir';
@@ -14,6 +14,8 @@ import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { markMessagesAsSeen } from './utils/markMessagesAsSeen';
 import { createReply } from './createReply';
+import { Database } from '../../clients/database.types';
+import { Provider } from '../../types/types';
 
 type processMailBoxArgs = {
     user: string;
@@ -25,6 +27,7 @@ type processMailBoxArgs = {
     limit: number;
     process_id: string;
     smtpHost: string;
+    provider: Database["public"]["Enums"]["Provider"],
     openRate?: number;
     password?: string;
     token?: string;
@@ -38,6 +41,7 @@ export async function processMailbox({
     spam,
     outputPath,
     limit,
+    provider,
     smtpHost,
     process_id,
     openRate,
@@ -62,7 +66,7 @@ export async function processMailbox({
         seq: number
     }[] = [];
 
-    let remainingReplies = repliesCount;
+    const remainingReplies = repliesCount;
     let sentMailboxPath: string | null = null;
 
     try {
@@ -132,7 +136,7 @@ export async function processMailbox({
                 lock.release();
                 continue;
             }
-
+            const messages = []
             for (const uid of list) {
                 let message;
                 try {
@@ -141,46 +145,12 @@ export async function processMailbox({
                         { source: true, uid: true, flags: true, labels: true, envelope: true },
                         { uid: true }
                     );
+                    messages.push(message)
                 } catch (fetchErr) {
                     handleError(fetchErr, `Failed to fetch message UID ${uid} from ${inbox}`, 'fetchOne');
                     report.emails.errors += 1;
                     report.emails.errorMessages.push(`Fetch Error UID ${uid}: ${(fetchErr as Error).message}`);
                     continue;
-                }
-
-                let replySentSuccessfully = false;
-                let sentReplyBuffer: Buffer | null = null;
-                console.log('remainingReplies', remainingReplies)
-                remainingReplies -= 1;
-                if (remainingReplies > 0) {
-                    try {
-                        logger.info(`Attempting to send reply for UID ${uid} ${user}`);
-                        sentReplyBuffer = await createReply(message, user, smtpHost, { password, token });
-
-                        if (sentReplyBuffer) {
-                            replySentSuccessfully = true;
-                            remainingReplies -= 1;
-                            logger.info(`Reply sent via SMTP for UID ${uid}. Remaining replies: ${remainingReplies}`);
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        } else {
-                            logger.warn(`Failed to send reply for UID ${uid} (createReply returned null).`);
-                        }
-                    } catch (replyErr) {
-                        logger.error(`Error during createReply call for UID ${uid}`, replyErr);
-                        handleError(replyErr, `Error calling createReply for UID ${uid}`, 'createReply');
-                    }
-                }
-
-                if (replySentSuccessfully && sentReplyBuffer && sentMailboxPath) {
-                    try {
-                        logger.info(`Appending sent reply for UID ${uid} to ${sentMailboxPath}`);
-                        const appendResult = await client.append(sentMailboxPath, sentReplyBuffer, ['\\Seen']);
-                        logger.info(`Successfully appended reply to ${sentMailboxPath}`, appendResult);
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    } catch (appendErr) {
-                        logger.error(`Failed to append sent reply for UID ${uid} to ${sentMailboxPath}`, appendErr);
-                        handleError(appendErr, `Failed to append reply to Sent folder for UID ${uid}`, 'client.append');
-                    }
                 }
 
                 try {
@@ -197,6 +167,17 @@ export async function processMailbox({
                         report.emails.errorMessages.push(`Save Error UID ${uid}: Unknown error`);
                         logger.info(`Неизвестная ошибка при сохранении ${uid}:`, err);
                     }
+                }
+
+            }
+            for (const message of messages) {
+                const { uid } = message
+                console.log('remainingReplies', remainingReplies)
+                if (remainingReplies > 0) {
+
+                    const { replySentSuccessfully, sentReplyBuffer } = await sendEmail({ uid, user, remainingReplies, message, smtpHost, password, token, report })
+
+                    await appendReply({ replySentSuccessfully, sentReplyBuffer, sentMailboxPath, client, provider, uid })
                 }
             }
 
@@ -264,3 +245,42 @@ export async function processMailbox({
 
 
 
+const sendEmail = async ({ uid, user, remainingReplies, message, smtpHost, password, token, report, }: { uid: number; user: string; remainingReplies: number; message: FetchMessageObject; smtpHost: string; password: string | undefined; token: string | undefined; report: ProcessReport; }) => {
+    let replySentSuccessfully = false;
+    let sentReplyBuffer: Buffer | null = null;
+
+
+    try {
+        logger.info(`Attempting to send reply for UID ${uid} ${user}`);
+        sentReplyBuffer = await createReply(message, user, smtpHost, { password, token });
+        report.replies_sent += 1
+        if (sentReplyBuffer) {
+            replySentSuccessfully = true;
+            remainingReplies -= 1;
+            logger.info(`Reply sent via SMTP for UID ${uid}. Remaining replies: ${remainingReplies}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+            logger.warn(`Failed to send reply for UID ${uid} (createReply returned null).`);
+        }
+    } catch (replyErr) {
+        logger.error(`Error during createReply call for UID ${uid}`, replyErr);
+        handleError(replyErr, `Error calling createReply for UID ${uid}`, 'createReply');
+    }
+    return { replySentSuccessfully, sentReplyBuffer }
+
+}
+const appendReply = async ({ replySentSuccessfully, sentReplyBuffer, sentMailboxPath, client, provider, uid }: { replySentSuccessfully: boolean; sentReplyBuffer: Buffer<ArrayBufferLike> | null; sentMailboxPath: string | null; client: ImapFlow; provider: Provider; uid: number }) => {
+    if (provider !== 'google') {
+        if (replySentSuccessfully && sentReplyBuffer && sentMailboxPath) {
+            try {
+                logger.info(`Appending sent reply for UID ${uid} to ${sentMailboxPath}`);
+                const appendResult = await client.append(sentMailboxPath, sentReplyBuffer, ['\\Seen']);
+                logger.info(`Successfully appended reply to ${sentMailboxPath}`, appendResult);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (appendErr) {
+                logger.error(`Failed to append sent reply for UID ${uid} to ${sentMailboxPath}`, appendErr);
+                handleError(appendErr, `Failed to append reply to Sent folder for UID ${uid}`, 'client.append');
+            }
+        }
+    }
+}

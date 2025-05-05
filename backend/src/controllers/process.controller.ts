@@ -26,6 +26,7 @@ class ProcessController {
           limit,
           openRate: openRate,
           outputPath: 'files',
+          provider: account.provider,
           ...(account.is_token
             ? { token: account.access_token || '' }
             : { password: account.app_password || '' }),

@@ -94,7 +94,7 @@ export const createReply = async (
             greetingTimeout: 5000,
             socketTimeout: 10000,
             debug: true, // Enable debugging
-            logger: true, // Log to console
+            logger: false, // Log to console
             tls: {
                 rejectUnauthorized: false // Allow self-signed certificates
             }

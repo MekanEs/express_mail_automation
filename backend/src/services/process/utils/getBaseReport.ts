@@ -17,6 +17,7 @@ export const getBaseReport = ({
     status: 'success',
     account: user,
     sender: from,
+    replies_sent: 0,
     spam: { found, moved },
     emails: { found: 0, processed: 0, errors: 0, errorMessages: [] },
     links: { found: 0, targetOpen: 0, attemptedOpen: 0, errors: 0, errorMessages: [] }

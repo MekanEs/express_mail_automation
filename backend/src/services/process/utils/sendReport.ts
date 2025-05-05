@@ -10,6 +10,7 @@ export const sendReport: sendReportFunc = async ({ user, report, from, process_i
         emails_errorMessages: report.emails.errorMessages,
         emails_errors: report.emails.errors,
         emails_found: report.emails.found,
+        replies_Sent: report.replies_sent,
         emails_processed: report.emails.processed,
         links_attemptedOpen: report.links.attemptedOpen,
         links_errorMessages: report.links.errorMessages,
