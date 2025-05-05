@@ -12,6 +12,7 @@ export type ProviderConfig = {
   host: string;
   mailboxes: string[];
   spam: string[];
+  smtpHost: string;
 };
 
 export type ProviderConfigsType = Record<Provider, ProviderConfig>;

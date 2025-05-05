@@ -5,6 +5,7 @@ export function createImapConfig({
   host,
   password,
   token,
+
 }: {
   user: string;
   host: string;

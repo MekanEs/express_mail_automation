@@ -14,7 +14,6 @@ import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { markMessagesAsSeen } from './utils/markMessagesAsSeen';
 import { createReply } from './createReply';
-import { report } from 'process';
 
 type processMailBoxArgs = {
     user: string;
@@ -25,6 +24,7 @@ type processMailBoxArgs = {
     outputPath: string;
     limit: number;
     process_id: string;
+    smtpHost: string;
     openRate?: number;
     password?: string;
     token?: string;
@@ -38,10 +38,12 @@ export async function processMailbox({
     spam,
     outputPath,
     limit,
+    smtpHost,
     process_id,
     openRate,
     password,
-    token, repliesCount
+    token,
+    repliesCount
 }: processMailBoxArgs) {
     if (!openRate) {
         openRate = 70;
@@ -60,12 +62,34 @@ export async function processMailbox({
         seq: number
     }[] = [];
 
+    let remainingReplies = repliesCount;
+    let sentMailboxPath: string | null = null;
+
     try {
         const connectionStatus = await connectClient(client)
         if (!connectionStatus) {
             logger.debug('no connection')
             return
         }
+
+        try {
+            const allMailboxes = await client.list();
+            const foundSentBox = allMailboxes.find(box =>
+                box.specialUse === '\\Sent' ||
+                box.path.toLowerCase() === 'sent' ||
+                box.path.toLowerCase() === 'sent items' ||
+                box.path.toLowerCase() === 'отправленные'
+            );
+            if (foundSentBox) {
+                sentMailboxPath = foundSentBox.path;
+                logger.info(`Found 'Sent' mailbox: ${sentMailboxPath}`);
+            } else {
+                logger.warn(`Could not automatically detect 'Sent' mailbox for user ${user}. Replies will not be saved to Sent.`);
+            }
+        } catch (listErr) {
+            handleError(listErr, `Failed to list mailboxes to find Sent folder for ${user}`, 'client.list');
+        }
+
         const { spamListResult, uidMaps } = await spamBoxesCheck({
             client,
             spamBoxes: spam,
@@ -80,11 +104,7 @@ export async function processMailbox({
             process_id,
             moved: uidMaps?.size ?? 0
         });
-        const replies: {
-            path: string;
-            mimeMessage: Buffer;
-            flags: string[];
-        }[] = []
+
         for (const inbox of mailboxes) {
             const markAsSeen: number[] = [];
             let lock;
@@ -92,77 +112,114 @@ export async function processMailbox({
                 logger.info('try to get inbox', inbox)
                 lock = await client.getMailboxLock(inbox);
             } catch (err) {
-                console.log(await client.list())
+                logger.error(`Failed to lock mailbox ${inbox}`, err);
                 handleError(err)
                 continue;
             }
             let list: number[] | undefined
             try {
                 list = await searchMessages({ from, client, inbox });
-                logger.info('found messages')
+                logger.info(`found ${list.length} messages in ${inbox}`)
                 if (!list.length) {
                     lock.release();
                     continue;
                 }
-                report.emails.found = list.length;
+                report.emails.found += list.length;
                 list = list.slice(0, limit);
             } catch (err) {
                 handleError(err, 'error during message search', 'searchMessages')
                 list = []
+                lock.release();
+                continue;
             }
 
-
-
             for (const uid of list) {
-                logger.info('сохраняю письмо')
-                const message = await client.fetchOne(
-                    uid.toString(),
-                    { source: true, uid: true, flags: true, labels: true, envelope: true },
-                    { uid: true }
-                );
+                let message;
                 try {
-                    if (repliesCount > 0) {
-                        const reply = await createReply(client, message, user)
-                        if (reply) {
-                            replies.push(reply)
-                        }
-                        repliesCount -= 1
-                    }
-                } catch (err) {
-                    logger.error('error during reply creation', err)
+                    message = await client.fetchOne(
+                        uid.toString(),
+                        { source: true, uid: true, flags: true, labels: true, envelope: true },
+                        { uid: true }
+                    );
+                } catch (fetchErr) {
+                    handleError(fetchErr, `Failed to fetch message UID ${uid} from ${inbox}`, 'fetchOne');
+                    report.emails.errors += 1;
+                    report.emails.errorMessages.push(`Fetch Error UID ${uid}: ${(fetchErr as Error).message}`);
+                    continue;
                 }
-                logger.debug(message)
+
+                let replySentSuccessfully = false;
+                let sentReplyBuffer: Buffer | null = null;
+                console.log('remainingReplies', remainingReplies)
+                remainingReplies -= 1;
+                if (remainingReplies > 0) {
+                    try {
+                        logger.info(`Attempting to send reply for UID ${uid} ${user}`);
+                        sentReplyBuffer = await createReply(message, user, smtpHost, { password, token });
+
+                        if (sentReplyBuffer) {
+                            replySentSuccessfully = true;
+                            remainingReplies -= 1;
+                            logger.info(`Reply sent via SMTP for UID ${uid}. Remaining replies: ${remainingReplies}`);
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } else {
+                            logger.warn(`Failed to send reply for UID ${uid} (createReply returned null).`);
+                        }
+                    } catch (replyErr) {
+                        logger.error(`Error during createReply call for UID ${uid}`, replyErr);
+                        handleError(replyErr, `Error calling createReply for UID ${uid}`, 'createReply');
+                    }
+                }
+
+                if (replySentSuccessfully && sentReplyBuffer && sentMailboxPath) {
+                    try {
+                        logger.info(`Appending sent reply for UID ${uid} to ${sentMailboxPath}`);
+                        const appendResult = await client.append(sentMailboxPath, sentReplyBuffer, ['\\Seen']);
+                        logger.info(`Successfully appended reply to ${sentMailboxPath}`, appendResult);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } catch (appendErr) {
+                        logger.error(`Failed to append sent reply for UID ${uid} to ${sentMailboxPath}`, appendErr);
+                        handleError(appendErr, `Failed to append reply to Sent folder for UID ${uid}`, 'client.append');
+                    }
+                }
+
                 try {
+                    logger.info(`Saving original email UID ${uid}`);
                     await SaveProcessedEmail(message, dirPath, ProcessObject);
                     markAsSeen.push(message.uid);
                     if (global.gc) global.gc();
                 } catch (err) {
+                    logger.error(`Failed to save email UID ${uid}`, err);
                     report.emails.errors += 1;
                     if (err instanceof Error) {
-                        report.emails.errorMessages.push(err.message);
+                        report.emails.errorMessages.push(`Save Error UID ${uid}: ${err.message}`);
                     } else {
-                        logger.info(`Неизвестная ошибка:`, err);
+                        report.emails.errorMessages.push(`Save Error UID ${uid}: Unknown error`);
+                        logger.info(`Неизвестная ошибка при сохранении ${uid}:`, err);
                     }
                 }
             }
-            await markMessagesAsSeen(client, markAsSeen)
-            lock.release();
-        }
-        await handleBrowser({ openRate, ProcessObject, report })
 
-
-        for (let reply of replies) {
             try {
-                logger.info('appending reply', reply.path, reply.flags)
-                const res = await client.append(reply.path, reply.mimeMessage, reply.flags)
-                logger.info('reply appended', res)
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 second
-
-            } catch (err) {
-                handleError(err, 'error during reply append', 'append')
+                if (markAsSeen.length > 0) {
+                    logger.info(`Marking ${markAsSeen.length} messages as seen in ${inbox}`);
+                    await markMessagesAsSeen(client, markAsSeen);
+                }
+            } catch (markErr) {
+                handleError(markErr, `Failed to mark messages as seen in ${inbox}`, 'markMessagesAsSeen');
+            } finally {
+                if (lock) {
+                    await lock.release();
+                    logger.info(`Released lock for mailbox ${inbox}`);
+                }
             }
         }
 
+        if (ProcessObject.length > 0) {
+            await handleBrowser({ openRate, ProcessObject, report });
+        } else {
+            logger.info("No emails processed for link handling.");
+        }
 
         if (report.emails.errors === 0 && report.links.errors === 0) {
             report.status = 'success';
@@ -172,16 +229,19 @@ export async function processMailbox({
 
         await sendReport({ from, inbox: mailboxes.join(', '), process_id, report, user });
     } catch (err) {
-        logger.error('Error during initial client.connect():', err, user); // More specific catch
-        // Handle connection error appropriately
-        return;
+        logger.error('Unhandled error during mailbox processing:', err, user);
+        handleError(err, 'processMailbox top level error')
     } finally {
-
-        await client.logout();
-
-        // Логирование
-        logger.info('Отключение завершено.');
-
+        try {
+            if (client.usable) {
+                await client.logout();
+                logger.info('IMAP client logout completed.');
+            } else {
+                logger.info('IMAP client already logged out or unusable.');
+            }
+        } catch (logoutErr) {
+            logger.error('Error during IMAP client logout:', logoutErr);
+        }
     }
 }
 
