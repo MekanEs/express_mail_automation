@@ -66,7 +66,6 @@ const SenderAggregatesTable: React.FC = () => {
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_replies_sent}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_reports}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_spam_found}/{row.spam_moved}</td>
-
                         </tr>
                     ))}
                 </tbody>
