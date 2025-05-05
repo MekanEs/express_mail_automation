@@ -65,8 +65,8 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                         <th scope="col" onClick={() => onSortChange('sender')}>Sender{renderSortArrow('sender')}</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inbox</th>
                                         <th scope="col" onClick={() => onSortChange('status')}>Status{renderSortArrow('status')}</th>
-                                        <th scope="col" onClick={() => onSortChange('emails_found')}>Found{renderSortArrow('emails_found')}</th>
-                                        <th scope="col" onClick={() => onSortChange('emails_processed')}>Processed{renderSortArrow('emails_processed')}</th>
+                                        <th scope="col" onClick={() => onSortChange('emails_found')}>Found/Processed{renderSortArrow('emails_found')}</th>
+                                        <th scope="col" >Replies Sent</th>
                                         <th scope="col" onClick={() => onSortChange('created_at')}>Date{renderSortArrow('created_at')}</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links Opened</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spam Found</th>
@@ -83,8 +83,8 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                             <td className="">
                                                 <StatusBadge status={item.status} />
                                             </td>
-                                            <td className="text-gray-500 text-center">{item.emails_found ?? 0}</td>
-                                            <td className="text-gray-500 text-center">{item.emails_processed ?? 0}</td>
+                                            <td className="text-gray-500 text-center">{item.emails_found ?? 0}/{item.emails_processed ?? 0}</td>
+                                            <td className="text-gray-500 text-center">{item.replies_Sent}</td>
                                             <td className="text-gray-500">{formatDate(item.created_at)}</td>
                                             <td className="text-gray-500">
                                                 {item.links_attemptedOpen ?? 0}/{item.links_found ?? 0}
@@ -104,11 +104,15 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                             </tbody>
                         </table>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mt-2">
                         <button
                             disabled={isDeleting}
-                            onClick={() => deleteReports({ process_id: processId })}
-                            className="btn btn-danger"
+                            onClick={() => {
+                                if (window.confirm('удалить отчет?')) {
+                                    deleteReports({ process_id: processId })
+                                }
+                            }}
+                            className="btn btn-danger w-[200px]"
                         >
                             {isDeleting ? 'Deleting...' : 'Delete'}
                         </button>

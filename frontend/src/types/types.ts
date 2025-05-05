@@ -16,23 +16,7 @@ export type ProviderConfig = {
 export type ProviderConfigsType = Record<Provider, ProviderConfig>;
 
 // Тип для отчета, совпадающий с бэкендом
-export type Report = {
-    id: string;
-    created_at: string | null;
-    process_id: string | null;
-    account: string | null;
-    sender: string | null;
-    inbox: string | null;
-    status: string | null; // 'success', 'failure', 'partial_failure', etc.
-    emails_found: number | null;
-    emails_processed: number | null;
-    links_found: number | null;
-    spam_found: number;
-    spam_moved: number;
-    links_attemptedOpen: number | null;
-    links_errors: number | null;
-    emails_errorMessages?: string[]; // Уточнить тип при необходимости
-};
+export type Report = Database['public']['Tables']['reports']["Row"]
 
 // Добавляем универсальный тип для элементов с флагом выбора
 export type Selectable<T> = T & { is_selected: boolean };

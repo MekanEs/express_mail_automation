@@ -52,6 +52,7 @@ const SenderAggregatesTable: React.FC = () => {
                         <th style={{ textAlign: 'left', padding: '8px' }}>Sender</th>
                         <th style={{ textAlign: 'right', padding: '8px' }}>Emails Processed</th>
                         <th style={{ textAlign: 'right', padding: '8px' }}>Links Attempted/Opened</th>
+                        <th style={{ textAlign: 'right', padding: '8px' }}>Total Replies Sent</th>
                         <th style={{ textAlign: 'right', padding: '8px' }}>Reports</th>
                         <th style={{ textAlign: 'right', padding: '8px' }}>Spam Found/Moved</th>
                     </tr>
@@ -62,8 +63,10 @@ const SenderAggregatesTable: React.FC = () => {
                             <td style={{ padding: '8px' }}>{row.sender}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_emails_processed}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_links_attempted_open}/{row.total_links_opened}</td>
+                            <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_replies_sent}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_reports}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_spam_found}/{row.spam_moved}</td>
+
                         </tr>
                     ))}
                 </tbody>

@@ -3,6 +3,8 @@ import { ProcessForm } from '../../components/process/ProcessForm';
 import { SelectableAccount, SelectableEmail } from '../../types/types';
 import { useAccounts } from '../../hooks/useAccountQueries'; // Импорт хука для получения аккаунтов
 import { useSenders } from '../../hooks/useSenderQueries';
+import Accounts from '../../components/accounts/Accounts';
+import { EmailList } from '../../components/emails/EmailList';
 
 export const NewProcessPage: React.FC = () => {
     // Состояние для данных формы
@@ -57,14 +59,19 @@ export const NewProcessPage: React.FC = () => {
                 </div>
             )}
             {!isLoadingAccounts && !isErrorAccounts && !isLoadingSenders && !isErrorSenders && (
-                <ProcessForm
-                    availableSenders={availableSenders}
-                    selectedAccounts={selectedAccounts}
-                    selectedSenders={selectedSenders}
-                    onAccountSelectionChange={setSelectedAccounts}
-                    onSenderSelectionChange={setSelectedSenders}
+                <div className=' p-4 bg-white rounded  shadow-md'>
+                    <Accounts selected={selectedAccounts} setSelected={setSelectedAccounts} />
+                    <EmailList
+                        emails={availableSenders}
+                        selected={selectedSenders}
+                        toggleSelection={setSelectedSenders}
+                    />
+                    <ProcessForm
+                        selectedAccounts={selectedAccounts}
+                        selectedSenders={selectedSenders}
 
-                />
+
+                    /></div>
             )}
         </div>
     );

@@ -227,29 +227,9 @@ export async function processMailbox({
 }
 
 
-
-// async function launchBrowser(headless: boolean = false): Promise<Browser> {
-//     logger.info(`Launching browser (headless: ${headless})...`);
-//     const browser = await puppeteer.launch({
-//         headless: headless,
-//         args: ['--no-sandbox', '--disable-setuid-sandbox']
-//     });
-//     return browser;
-// }
-
-
-
-
-
-
-
-
-
 const sendEmail = async ({ uid, user, remainingReplies, message, smtpHost, password, token, report, }: { uid: number; user: string; remainingReplies: number; message: FetchMessageObject; smtpHost: string; password: string | undefined; token: string | undefined; report: ProcessReport; }) => {
     let replySentSuccessfully = false;
     let sentReplyBuffer: Buffer | null = null;
-
-
     try {
         logger.info(`Attempting to send reply for UID ${uid} ${user}`);
         sentReplyBuffer = await createReply(message, user, smtpHost, { password, token });
@@ -269,6 +249,7 @@ const sendEmail = async ({ uid, user, remainingReplies, message, smtpHost, passw
     return { replySentSuccessfully, sentReplyBuffer }
 
 }
+
 const appendReply = async ({ replySentSuccessfully, sentReplyBuffer, sentMailboxPath, client, provider, uid }: { replySentSuccessfully: boolean; sentReplyBuffer: Buffer<ArrayBufferLike> | null; sentMailboxPath: string | null; client: ImapFlow; provider: Provider; uid: number }) => {
     if (provider !== 'google') {
         if (replySentSuccessfully && sentReplyBuffer && sentMailboxPath) {
