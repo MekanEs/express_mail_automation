@@ -1,12 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Database } from '../../types/database.types';
+import { BASE_API } from '../../api/constants';
 
 // Define the type based on sender_aggregates.Row
 type SenderAggregateRow = Database['public']['Tables']['sender_aggregates']['Row'];
 
 // --- API Function ---
-const API_URL = 'http://localhost:3003/api'; // Assuming same base URL as reportsApi
+const API_URL = BASE_API; // Assuming same base URL as reportsApi
 
 const getSenderAggregates = async (): Promise<SenderAggregateRow[]> => {
     const url = `${API_URL}/reports/sender-aggregates`; // Hypothetical endpoint

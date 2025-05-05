@@ -2,9 +2,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { handleApiResponse } from "../utils/apiUtils";
 import toast from "react-hot-toast";
+import { BASE_API } from "./constants";
 
 // Базовый URL API (можно вынести в переменные окружения)
-const API_URL = 'http://localhost:3003/api';  // Предполагаем, что Vite настроен на проксирование
+const API_URL = BASE_API;  // Предполагаем, что Vite настроен на проксирование
 
 /**
  * Запуск нового процесса обработки

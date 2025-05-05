@@ -1,6 +1,7 @@
 import { from_email } from "../types/types";
+import { BASE_API } from "./constants";
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = BASE_API;
 
 export const getEmails = async (): Promise<from_email[]> => {
     const res = await fetch(`${API_URL}/fromEmails`, {

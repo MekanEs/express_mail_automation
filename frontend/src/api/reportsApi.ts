@@ -4,8 +4,9 @@ import {
     PaginatedReportsResponse,
 } from "../types/types";
 import toast from "react-hot-toast";
+import { BASE_API } from "./constants";
 
-const API_URL = 'http://localhost:3003/api'; // Убедитесь, что URL правильный
+const API_URL = BASE_API; // Убедитесь, что URL правильный
 
 // Функция для получения отчетов с пагинацией, сортировкой и фильтрацией
 export const getReports = async (

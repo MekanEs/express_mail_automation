@@ -1,7 +1,8 @@
 import { accounts, SelectableAccount } from '../types/types';
 import { handleApiResponse } from '../utils/apiUtils';
+import { BASE_API } from './constants';
 
-const API_URL = 'http://localhost:3003/api'; // Используем относительный URL для прокси Vite
+const API_URL = BASE_API; // Используем относительный URL для прокси Vite
 
 /**
  * Получение списка доступных аккаунтов.

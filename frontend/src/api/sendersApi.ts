@@ -1,7 +1,8 @@
 import { from_email } from "../types/types";
 import { handleApiResponse } from "../utils/apiUtils";
+import { BASE_API } from "./constants";
 
-const API_URL = 'http://localhost:3003/api'
+const API_URL = BASE_API
 
 /**
  * Получение списка email адресов отправителей.

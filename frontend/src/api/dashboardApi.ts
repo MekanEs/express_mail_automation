@@ -1,8 +1,9 @@
 import { DashboardMetrics } from "../types/types";
 import { handleApiResponse } from "../utils/apiUtils";
+import { BASE_API } from "./constants";
 
 // Базовый URL API (можно вынести в переменные окружения)
-const API_URL = 'http://localhost:3003/api' // Предполагаем, что Vite настроен на проксирование
+const API_URL = BASE_API // Предполагаем, что Vite настроен на проксирование
 
 /**
  * Получение метрик для дашборда
