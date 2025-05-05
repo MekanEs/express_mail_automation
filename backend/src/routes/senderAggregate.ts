@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, } from 'express';
 // FIXME: Correct the import path and name based on your Supabase client setup
 import { supabaseClient } from '../clients/supabaseClient';
 import { Database } from '../clients/database.types';
@@ -9,7 +9,7 @@ type SenderAggregateRow = Database['public']['Tables']['sender_aggregates']['Row
 const router = Router();
 
 // Controller function to get sender aggregates
-const getSenderAggregates = async (req: Request, res: Response, next: NextFunction) => {
+const getSenderAggregates = async (req: Request, res: Response,) => {
     try {
         const { data, error } = await supabaseClient
             .from('sender_aggregates')
@@ -35,7 +35,7 @@ const getSenderAggregates = async (req: Request, res: Response, next: NextFuncti
 
 // Define the GET route - using the async handler correctly
 router.get('/', (req, res, next) => {
-    getSenderAggregates(req, res, next).catch(next); // Ensure async errors are caught and passed to Express error handlers
+    getSenderAggregates(req, res,).catch(next); // Ensure async errors are caught and passed to Express error handlers
 });
 
 export default router;

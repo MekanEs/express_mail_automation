@@ -4,7 +4,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { ProcessReport } from '../../types/reports';
 import { handleError } from '../../utils/error-handler';
 import { logger } from '../../utils/logger';
-import { Browser, Page } from 'puppeteer';
+import { Page } from 'puppeteer';
 
 puppeteer.use(StealthPlugin());
 

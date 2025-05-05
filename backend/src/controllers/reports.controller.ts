@@ -103,7 +103,7 @@ class ReportsController {
   }
   public async deleteReports(req: Request, response: Response): Promise<void> {
     const { process_id } = req.body;
-    const { data, error } = await supabaseClient.from('reports').delete().eq('process_id', process_id);
+    const { error } = await supabaseClient.from('reports').delete().eq('process_id', process_id);
     if (error) {
       response.status(500).send({ error: error.message });
     }
