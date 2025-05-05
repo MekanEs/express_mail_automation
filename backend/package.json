@@ -26,7 +26,10 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "sanitize-html": "^2.15.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "@types/nodemailer": "^6.4.17",
+    "@types/papaparse": "^5.3.15",
+    "supabase": "^2.20.12"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -43,6 +46,10 @@
     "nodemon": "^3.1.9",
     "prettier": "^3.5.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "cors": "^2.8.5",
+    "html-to-text": "^9.0.5",
+    "nodemailer": "^6.10.1",
+    "puppeteer": "^24.6.1"
   }
 }
