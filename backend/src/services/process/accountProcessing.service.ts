@@ -65,7 +65,7 @@ export class AccountProcessingService {
     }
 
     const report = reportService.initializeReport(process_id, userEmail, fromEmail);
-    const projectRoot = path.resolve(__dirname, '..',);
+    const projectRoot = path.resolve(__dirname, '..', '..', '..');
     // Создаем ПОЛНЫЙ путь к папке для временных файлов этого запуска
     const uniqueSubfolder = `${process_id}_${userEmail.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
     const tempDirPath = path.join(projectRoot, baseOutputPath, uniqueSubfolder);
