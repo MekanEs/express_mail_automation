@@ -67,7 +67,7 @@ const openMail = async (page: Page, mail: {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
         await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 3000)));
         report.emails.processed += 1;
-        logger.info('mail opened', mail.file)
+        logger.info('письмо открыто', mail.file)
     } catch (err) {
         handleError(err, 'error during mail opening', 'openMail')
     }

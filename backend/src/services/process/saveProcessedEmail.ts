@@ -19,7 +19,7 @@ export async function SaveProcessedEmail(
     const htmlPath = path.join(dirPath, `email_${message.emailId ?? "_"}${message.uid}.html`);
 
     const parsed = await simpleParser(message.source);
-    logger.info('start', parsed.subject);
+    logger.info('начало', parsed.subject);
     if (!parsed.html) {
         return;
     }

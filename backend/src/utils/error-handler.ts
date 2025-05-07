@@ -4,6 +4,6 @@ export const handleError = (err: unknown, message?: string, functionName?: strin
   if (err instanceof Error) {
     logger.error(err.message, message, functionName)
   } else {
-    logger.error('Unknown error', functionName, message, err)
+    logger.error('Неизвестная ошибка', functionName, message, err)
   }
 }

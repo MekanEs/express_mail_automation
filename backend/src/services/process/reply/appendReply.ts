@@ -9,23 +9,23 @@ export const appendReply = async ({ replySentSuccessfully, ReplyBuffer, sentMail
     if (provider !== 'google') {
         if (replySentSuccessfully && ReplyBuffer && sentMailboxPath) {
             try {
-                logger.info(`Appending sent reply for UID ${uid} to ${sentMailboxPath}`);
+                logger.info(`Добавление отправленного ответа для UID ${uid} в ${sentMailboxPath}`);
                 const appendResult = await client.append(sentMailboxPath, ReplyBuffer, ['\\Seen']);
-                logger.info(`Successfully appended reply to ${sentMailboxPath}`, appendResult);
+                logger.info(`Ответ успешно добавлен в ${sentMailboxPath}`, appendResult);
                 await new Promise(resolve => setTimeout(resolve, 500));
             } catch (appendErr) {
-                logger.error(`Failed to append sent reply for UID ${uid} to ${sentMailboxPath}`, appendErr);
+                logger.error(`Не удалось добавить отправленный ответ для UID ${uid} в ${sentMailboxPath}`, appendErr);
                 handleError(appendErr, `Failed to append reply to Sent folder for UID ${uid}`, 'client.append');
             }
         }
         else if (!replySentSuccessfully && ReplyBuffer && draftMailboxPath) {
             try {
-                logger.info(`Appending to draft for UID ${uid} to ${draftMailboxPath}`);
+                logger.info(`Добавление черновика для UID ${uid} в ${draftMailboxPath}`);
                 const appendResult = await client.append(draftMailboxPath, ReplyBuffer, ['\\Seen']);
-                logger.info(`Successfully appended draft to ${draftMailboxPath}`, appendResult);
+                logger.info(`Черновик успешно добавлен в ${draftMailboxPath}`, appendResult);
                 await new Promise(resolve => setTimeout(resolve, 500));
             } catch (appendErr) {
-                logger.error(`Failed to append draft reply for UID ${uid} to ${draftMailboxPath}`, appendErr);
+                logger.error(`Не удалось добавить черновик ответа для UID ${uid} в ${draftMailboxPath}`, appendErr);
                 handleError(appendErr, `Failed to append draft reply to Draft folder for UID ${uid}`, 'client.append');
             }
         }

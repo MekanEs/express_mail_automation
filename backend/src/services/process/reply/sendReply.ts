@@ -10,21 +10,21 @@ export async function ManageReply({ uid, user, remainingReplies, message, smtpHo
     let replySentSuccessfully = false;
     let ReplyBuffer: Buffer | null = null;
     try {
-        logger.info(`Attempting to send reply for UID ${uid} ${user}`);
+        logger.info(`Попытка отправить ответ для UID ${uid} ${user}`);
         const { mimeMessageBuffer, emailContent } = await createReplyBuffer(message, user)
         ReplyBuffer = mimeMessageBuffer
         if (emailContent) {
             sendReplyEmail(emailContent, user, smtpHost, { password, token });
             replySentSuccessfully = true;
-            logger.info(`Reply sent via SMTP for UID ${uid}.`);
+            logger.info(`Ответ отправлен через SMTP для UID ${uid}.`);
             report.replies_sent += 1
             await new Promise(resolve => setTimeout(resolve, 500));
         }
         else {
-            logger.warn(`Failed to send reply for UID ${uid} (createReply returned null).`);
+            logger.warn(`Не удалось отправить ответ для UID ${uid} (createReply вернул null).`);
         }
     } catch (replyErr) {
-        logger.error(`Error during createReply call for UID ${uid}`, replyErr);
+        logger.error(`Ошибка при вызове createReply для UID ${uid}`, replyErr);
         handleError(replyErr, `Error calling createReply for UID ${uid}`, 'createReply');
     }
     return { replySentSuccessfully, ReplyBuffer }

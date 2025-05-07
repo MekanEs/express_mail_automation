@@ -5,11 +5,11 @@ export async function disconnectClient(client: ImapFlow) {
     try {
       if (client.usable) {
         await client.logout();
-        logger.info('IMAP client logout completed.');
+        logger.info('Выход из IMAP клиента выполнен.');
       } else {
-        logger.info('IMAP client already logged out or unusable.');
+        logger.info('IMAP клиент уже вышел из системы или недоступен.');
       }
     } catch (logoutErr) {
-      logger.error('Error during IMAP client logout:', logoutErr);
+      logger.error('Ошибка при выходе из IMAP клиента:', logoutErr);
     }
   }

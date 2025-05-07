@@ -18,7 +18,7 @@ export const errorMiddleware = (
 
   // Log the error (always log internal server errors)
   if (err.statusCode >= 500 || isDevelopment) {
-    logger.error('Unhandled Error:', {
+    logger.error('Необработанная ошибка:', {
       message: err.message,
       statusCode: err.statusCode,
       stack: isDevelopment ? err.stack : undefined, // Only show stack in dev
@@ -26,7 +26,7 @@ export const errorMiddleware = (
     });
   } else {
     // Log less critical client errors if needed
-    logger.warn('Client Error:', {
+    logger.warn('Ошибка клиента:', {
       message: err.message,
       statusCode: err.statusCode
     });

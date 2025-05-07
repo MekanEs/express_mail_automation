@@ -3,7 +3,7 @@ import { ProcessReport } from "../../../types/reports";
 import { logger } from "../../../utils/logger";
 
 export const sendReport: sendReportFunc = async ({ user, report, from, process_id, inbox }) => {
-    logger.info(`Sending report for ${user}`)
+    logger.info(`Отправка отчета для ${user}`)
     logger.info(report)
     const res = await supabaseClient.from('reports').insert({
         account: user,
@@ -24,7 +24,7 @@ export const sendReport: sendReportFunc = async ({ user, report, from, process_i
         sender: from,
         status: report.status
     });
-    logger.info(`Report sent for ${user}`)
+    logger.info(`Отчет отправлен для ${user}`)
     logger.info(res)
 };
 

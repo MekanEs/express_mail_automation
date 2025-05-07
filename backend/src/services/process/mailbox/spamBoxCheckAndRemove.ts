@@ -16,12 +16,10 @@ const spamBoxCheckAndReMove = async ({
 }: SpamBoxCheckAndReMoveArgs) => {
     let spamLock;
     try {
-
-
         spamLock = await client.getMailboxLock(spamBoxPath);
-        logger.info('got lock', spamBoxPath);
+        logger.info('получена блокировка', spamBoxPath);
         const spamList = await searchMessages({ from, client, inbox: spamBoxPath });
-        logger.info('found messages', spamList);
+        logger.info('найдены сообщения', spamList);
         const { uidMap } = await client.messageMove(spamList, inboxPath, { uid: true });
         logger.info(`перемещено из ${spamBoxPath}: `, spamList.length, uidMap?.size, ' писем');
         return { spamList, uidMap };
@@ -31,12 +29,11 @@ const spamBoxCheckAndReMove = async ({
         if (spamLock) {
             try {
                 await spamLock.release();
-                logger.debug('lock released')
+                logger.debug('блокировка снята')
             } catch (releaseErr) {
-                logger.error('Ошибка при release lock:', releaseErr);
+                logger.error('Ошибка при снятии блокировки:', releaseErr);
             }
         }
-
     }
     return { spamList: [], uidMap: new Map() };
 };

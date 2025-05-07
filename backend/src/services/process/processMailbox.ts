@@ -74,7 +74,7 @@ export async function processMailbox({
     try {
         const connectionStatus = await connectClient(client)
         if (!connectionStatus) {
-            logger.debug('no connection')
+            logger.debug('нет соединения')
             return
         }
         logger.info("подключен", user)
@@ -108,17 +108,17 @@ export async function processMailbox({
             const markAsSeen: number[] = [];
             let lock;
             try {
-                logger.info('try to get inbox', inbox)
+                logger.info('пытаемся получить ящик', inbox)
                 lock = await client.getMailboxLock(inbox);
             } catch (err) {
-                logger.error(`Failed to lock mailbox ${inbox}`, err);
+                logger.error(`Не удалось заблокировать почтовый ящик ${inbox}`, err);
                 handleError(err)
                 continue;
             }
             let list: number[] | undefined
             try {
                 list = await searchMessages({ from, client, inbox, });
-                logger.info(`found ${list.length} messages in ${inbox}`)
+                logger.info(`найдено ${list.length} сообщений в ${inbox}`)
                 if (!list.length) {
                     lock.release();
                     continue;
@@ -150,12 +150,12 @@ export async function processMailbox({
                 }
 
                 try {
-                    logger.info(`Saving original email UID ${uid}`);
+                    logger.info(`Сохранение оригинального письма UID ${uid}`);
                     await SaveProcessedEmail(message, dirPath, ProcessObject);
                     markAsSeen.push(message.uid);
                     if (global.gc) global.gc();
                 } catch (err) {
-                    logger.error(`Failed to save email UID ${uid}`, err);
+                    logger.error(`Не удалось сохранить письмо UID ${uid}`, err);
                     report.emails.errors += 1;
                     if (err instanceof Error) {
                         report.emails.errorMessages.push(`Save Error UID ${uid}: ${err.message}`);
@@ -180,12 +180,12 @@ export async function processMailbox({
             if (ProcessObject.length > 0) {
                 await handleBrowser({ browser, openRate, ProcessObject, report });
             } else {
-                logger.info("No emails processed for link handling.");
+                logger.info("Нет писем для обработки ссылок.");
             }
 
             try {
                 if (markAsSeen.length > 0) {
-                    logger.info(`Marking ${markAsSeen.length} messages as seen in ${inbox}`);
+                    logger.info(`Пометка ${markAsSeen.length} сообщений как прочитанные в ${inbox}`);
                     await markMessagesAsSeen(client, markAsSeen);
                 }
             } catch (markErr) {
@@ -193,7 +193,7 @@ export async function processMailbox({
             } finally {
                 if (lock) {
                     await lock.release();
-                    logger.info(`Released lock for mailbox ${inbox}`);
+                    logger.info(`Разблокирован почтовый ящик ${inbox}`);
                 }
             }
         }

@@ -13,10 +13,10 @@ export async function findSentMailbox(client: ImapFlow, user: string): Promise<s
     );
     
     if (foundSentBox) {
-      logger.info(`Found 'Sent' mailbox: ${foundSentBox.path}`);
+      logger.info(`Найден ящик 'Отправленные': ${foundSentBox.path}`);
       return foundSentBox.path;
     } else {
-      logger.warn(`Could not automatically detect 'Sent' mailbox for user ${user}. Replies will not be saved to Sent.`);
+      logger.warn(`Не удалось автоматически обнаружить ящик 'Отправленные' для пользователя ${user}. Ответы не будут сохранены в Отправленных.`);
       return null;
     }
   } catch (listErr) {

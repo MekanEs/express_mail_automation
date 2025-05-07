@@ -14,10 +14,10 @@ export async function findDraftMailbox(client: ImapFlow, user: string): Promise<
     );
     
     if (foundDraftBox) {
-      logger.info(`Found 'Draft' mailbox: ${foundDraftBox.path}`);
+      logger.info(`Найден ящик 'Черновики': ${foundDraftBox.path}`);
       return foundDraftBox.path;
     } else {
-      logger.warn(`Could not automatically detect 'Draft' mailbox for user ${user}. Replies will not be saved to Draft.`);
+      logger.warn(`Не удалось автоматически обнаружить ящик 'Черновики' для пользователя ${user}. Ответы не будут сохранены в Черновики.`);
       return null;
     }
   } catch (listErr) {

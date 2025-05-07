@@ -109,7 +109,7 @@ export const createReplyBuffer = async (
 
         return { mimeMessageBuffer, emailContent };
     } catch (err) {
-        logger.error(`Ошибка при создании ответа ${toAddress ? 'to ' + toAddress : ''}:`, err);
+        logger.error(`Ошибка при создании ответа ${toAddress ? 'на ' + toAddress : ''}:`, err);
         handleError(err, `Failed creating reply to ${toAddress || 'unknown'}`, 'createReplyBuffer');
         return { mimeMessageBuffer: null, emailContent: null };
     }
@@ -150,32 +150,32 @@ export const sendReplyEmail = async (
             }
         };
 
-        logger.info(`Attempting SMTP connection to ${smtpHost}:${transportOptions.port}`);
+        logger.info(`Попытка подключения к SMTP ${smtpHost}:${transportOptions.port}`);
         let transporter = nodemailer.createTransport(transportOptions);
 
         // Test connection before sending
         try {
             await transporter.verify();
-            logger.info('SMTP connection verified successfully');
+            logger.info('SMTP соединение успешно проверено');
         } catch (verifyErr) {
             handleError(verifyErr, `Failed to connect with port 587 (STARTTLS)`, 'sendReplyEmail/verify');
 
             // Try again with port 465 (SSL)
             transportOptions.port = 465;
             transportOptions.secure = true; // Use SSL
-            logger.info(`Retrying with SSL connection on port 465`);
+            logger.info(`Повторная попытка с SSL соединением на порту 465`);
 
             try {
                 transporter = nodemailer.createTransport(transportOptions);
                 await transporter.verify();
-                logger.info('SMTP SSL connection verified successfully');
+                logger.info('SMTP SSL соединение успешно проверено');
             } catch (sslErr) {
                 handleError(sslErr, `Failed to connect with port 465 (SSL)`, 'sendReplyEmail/verify');
 
                 // One last try with port 25 (basic)
                 transportOptions.port = 25;
                 transportOptions.secure = false;
-                logger.info(`Last attempt with basic connection on port 25`);
+                logger.info(`Последняя попытка с базовым соединением на порту 25`);
 
                 transporter = nodemailer.createTransport(transportOptions);
                 // No verify for port 25 - just try to send
@@ -198,12 +198,12 @@ export const sendReplyEmail = async (
                 html: emailContent.html
             });
 
-            logger.info(`Reply sent successfully via SMTP to ${emailContent.to}. Message ID: ${info.messageId}`);
+            logger.info(`Ответ успешно отправлен через SMTP на ${emailContent.to}. ID сообщения: ${info.messageId}`);
         } catch (sendErr) {
             handleError(sendErr, `Failed to send reply via SMTP`, 'sendReplyEmail/sendMail');
         }
     } catch (err) {
-        logger.error(`Ошибка при отправке ответа to ${emailContent.to}:`, err);
+        logger.error(`Ошибка при отправке ответа на ${emailContent.to}:`, err);
         handleError(err, `Failed sending reply to ${emailContent.to}`, 'sendReplyEmail');
     }
 };
