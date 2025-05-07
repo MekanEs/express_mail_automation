@@ -1,4 +1,3 @@
-// src/services/process/email/emailContent.service.ts
 import fs from 'fs';
 import path from 'path';
 import { FetchMessageObject } from 'imapflow';
@@ -9,7 +8,8 @@ import { sanitizeOptions } from '../../constants'; // Убедись, что п�
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
 import { fileSystemService } from '../utils/fileSystem.service';
-interface SavedEmailInfo {
+
+export interface SavedEmailInfo {
   filePath: string | null;
   extractedLink: string | null;
   subject?: string | null;

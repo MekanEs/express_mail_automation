@@ -1,4 +1,3 @@
-// src/services/process/utils/fileSystem.service.ts
 import fs from 'fs';
 import path from 'path';
 import { handleError } from '../../../utils/error-handler';

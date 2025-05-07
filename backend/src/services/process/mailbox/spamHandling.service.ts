@@ -1,14 +1,19 @@
-// src/services/process/mailbox/spamHandling.service.ts
 import { ImapFlow } from 'imapflow';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
 import { imapClientService } from '../client/imapClient.service';
 import { searchMessagesService } from '../email/searchMessages.service';
 
-interface SpamCheckResult {
+export interface SpamCheckResult {
   totalSpamFound: number;
   totalSpamMoved: number;
   movedUidsMap: Map<number, number>; // Карта старых UID на новые UID после перемещения
+}
+
+export interface SpamFolderResult {
+  spamFoundInFolder: number;
+  spamMovedInFolder: number;
+  movedUidsMap: Map<number, number>;
 }
 
 export class SpamHandlingService {
@@ -20,7 +25,7 @@ export class SpamHandlingService {
     spamMailboxPath: string,
     targetInboxPath: string,
     fromEmail: string
-  ): Promise<{ spamFoundInFolder: number; spamMovedInFolder: number; movedUidsMap: Map<number, number> }> {
+  ): Promise<SpamFolderResult> {
     let spamFoundInFolder = 0;
     let spamMovedInFolder = 0;
     const movedUidsMap = new Map<number, number>();
@@ -39,7 +44,7 @@ export class SpamHandlingService {
         { from: fromEmail }, // Критерии поиска
         `Спам-папка: ${spamMailboxPath}` // Контекст для логирования
       );  // false для seenFlag
-      
+
       spamFoundInFolder = spamListUids.length;
       logger.info(`[Spam Handling] Найдено ${spamFoundInFolder} писем от ${fromEmail} в ${spamMailboxPath}.`);
 
@@ -47,7 +52,7 @@ export class SpamHandlingService {
         try {
           logger.info(`[Spam Handling] Перемещение ${spamListUids.length} писем из ${spamMailboxPath} в ${targetInboxPath}.`);
           const { uidMap } = await client.messageMove(spamListUids, targetInboxPath, { uid: true });
-          
+
           if (uidMap) {
             spamMovedInFolder = uidMap.size;
             uidMap.forEach((newUid, oldUid) => movedUidsMap.set(oldUid, newUid));
@@ -55,7 +60,7 @@ export class SpamHandlingService {
           } else {
             logger.warn(`[Spam Handling] messageMove не вернул uidMap для ${spamMailboxPath}. Считаем, что перемещено ${spamListUids.length} (оценка).`);
             // В этом случае мы не можем точно знать новые UID, но можем считать, что все запрошенные были перемещены
-            spamMovedInFolder = spamListUids.length; 
+            spamMovedInFolder = spamListUids.length;
           }
         } catch (moveErr) {
           handleError(moveErr, `[Spam Handling] Ошибка при перемещении писем из ${spamMailboxPath} в ${targetInboxPath}`, 'checkAndMoveSpamFromFolder.messageMove');
@@ -90,10 +95,10 @@ export class SpamHandlingService {
     };
 
     if (!configuredSpamFolderNames || configuredSpamFolderNames.length === 0) {
-        logger.info("[Spam Handling] Список спам-папок не настроен, проверка спама пропускается.");
-        return overallResult;
+      logger.info("[Spam Handling] Список спам-папок не настроен, проверка спама пропускается.");
+      return overallResult;
     }
-    
+
     logger.info(`[Spam Handling] Начало проверки спам-папок: ${configuredSpamFolderNames.join(', ')} для отправителя ${fromEmail}`);
 
     for (const spamPath of configuredSpamFolderNames) {

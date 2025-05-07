@@ -2,7 +2,17 @@ import { supabaseClient } from "../../../clients/supabaseClient";
 import { ProcessReport } from "../../../types/reports";
 import { logger } from "../../../utils/logger";
 
-export const sendReport: sendReportFunc = async ({ user, report, from, process_id, inbox }) => {
+export interface SendReportParams {
+  user: string;
+  report: ProcessReport;
+  from: string;
+  process_id: string;
+  inbox: string;
+}
+
+export type SendReportFunc = (params: SendReportParams) => Promise<void>;
+
+export const sendReport: SendReportFunc = async ({ user, report, from, process_id, inbox }) => {
     logger.info(`Отправка отчета для ${user}`)
     logger.info(report)
     const res = await supabaseClient.from('reports').insert({
@@ -27,17 +37,3 @@ export const sendReport: sendReportFunc = async ({ user, report, from, process_i
     logger.info(`Отчет отправлен для ${user}`)
     logger.info(res)
 };
-
-type sendReportFunc = ({
-    user,
-    report,
-    from,
-    process_id,
-    inbox
-}: {
-    user: string;
-    report: ProcessReport;
-    from: string;
-    process_id: string;
-    inbox: string;
-}) => Promise<void>;

@@ -1,20 +1,22 @@
 import { ImapFlowOptions } from 'imapflow';
 import { logger } from './logger';
 
+export interface ImapConfigParams {
+  user: string;
+  host: string;
+  log: boolean;
+  password?: string;
+  token?: string;
+  verifyOnly?: boolean;
+}
+
 export function createImapConfig({
   user,
   host,
   password,
   token,
   log
-}: {
-  user: string;
-  host: string;
-  log: boolean
-  password?: string;
-  token?: string;
-  verifyOnly?: boolean
-}): ImapFlowOptions {
+}: ImapConfigParams): ImapFlowOptions {
   let authConfig: ImapFlowOptions['auth'] & { loginMethod?: string; method?: string } = {
     user: user,
     pass: password

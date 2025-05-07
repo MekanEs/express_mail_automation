@@ -12,7 +12,7 @@ export interface BrowserTask {
   filePath: string;
   linkToOpen?: string | null;
   uid: number;
-  subject?: string | null; // Добавил subject, как мы обсуждали, для передачи в BrowserTask
+  subject?: string | null;
 }
 
 export class BrowserInteractionService {

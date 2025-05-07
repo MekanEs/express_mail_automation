@@ -1,7 +1,12 @@
-
 import { ImapFlow, SearchObject } from 'imapflow';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
+
+export interface SearchParams {
+  client: ImapFlow;
+  criteria: SearchObject;
+  logContext?: string;
+}
 
 export class SearchMessagesService {
   /**

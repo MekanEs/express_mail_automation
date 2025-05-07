@@ -1,19 +1,20 @@
-import { account as AccountType, ProviderConfig } from '../../types/types'; // Убрал Provider, т.к. он есть в AccountType
+import { Account, ProviderConfig } from '../../types/types';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { imapClientService } from './client/imapClient.service';
 import { spamHandlingService } from './mailbox/spamHandling.service';
 import { searchMessagesService } from './email/searchMessages.service';
 import { emailContentService } from './email/emailContent.service';
-import { BrowserTask } from './browser/browserInteraction.service'; // Импортируем BrowserTask
+import { BrowserTask } from './browser/browserInteraction.service';
 import { replyService } from './reply/reply.service';
 import { reportService } from './utils/report.service';
 import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
 import { fileSystemService } from './utils/fileSystem.service';
 import path from 'path';
+import fs from 'fs';
 
 export interface AccountProcessingParams {
-  account: AccountType;
+  account: Account;
   fromEmail: string;
   providerConfig: ProviderConfig;
   process_id: string;

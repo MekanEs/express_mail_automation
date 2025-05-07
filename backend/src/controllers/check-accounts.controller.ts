@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { supabaseClient } from '../clients/supabaseClient';
-import { checkAccounts as checkAccountsService } from '../services/check_accounts/checkAccounts.service';
+import { checkAccounts as checkAccountsService, CheckAccountsParams } from '../services/check_accounts/checkAccounts.service';
 
 class CheckAccountsController {
   public async checkAccounts(_req: Request, response: Response) {
@@ -10,7 +10,13 @@ class CheckAccountsController {
     if (!accounts) {
       return;
     }
-    await checkAccountsService({ accounts: accounts, connected });
+    
+    const params: CheckAccountsParams = {
+      accounts: accounts,
+      connected
+    };
+    
+    await checkAccountsService(params);
     response.status(200).send(connected);
   }
 }

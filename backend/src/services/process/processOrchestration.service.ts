@@ -1,5 +1,4 @@
-// src/services/process/processOrchestration.service.ts
-import { ProcessRequestBody, } from '../../types/types';
+import { ProcessRequestBody } from '../../types/types';
 import { getConfig } from '../../utils/getConfig'; // Глобальная конфигурация провайдеров
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
@@ -11,10 +10,8 @@ import { fileSystemService } from './utils/fileSystem.service';
 import path from 'path';
 import fs from 'fs';
 
-interface StartProcessingParams extends ProcessRequestBody {
+export interface StartProcessingParams extends ProcessRequestBody {
   process_id: string;
-  // Можно добавить сюда другие глобальные параметры, если они появятся,
-  // например, путь к базовой директории для файлов или настройки headless режима.
   baseOutputPath: string;
   headlessBrowser: boolean | "shell" | undefined;
 }

@@ -5,6 +5,7 @@ import { useAccounts } from '../../hooks/useAccountQueries'; // Импорт х�
 import { useSenders } from '../../hooks/useSenderQueries';
 import Accounts from '../../components/accounts/Accounts';
 import { EmailList } from '../../components/emails/EmailList';
+import LogViewer from '../../components/LogsViewer/LogsViewer';
 
 export const NewProcessPage: React.FC = () => {
     // Состояние для данных формы
@@ -73,6 +74,9 @@ export const NewProcessPage: React.FC = () => {
 
                     /></div>
             )}
+            <div className='mt-4 p-2'>
+                <LogViewer />
+            </div>
         </div>
     );
 };

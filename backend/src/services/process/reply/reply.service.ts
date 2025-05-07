@@ -11,8 +11,7 @@ import { warmupReplies } from './warmupReplies';
 
 // Тексты ответов можно вынести в константы или отдельный файл, если их много
 
-
-interface SmtpAuthOptions {
+export interface SmtpAuthOptions {
   password?: string;
   token?: string;
 }

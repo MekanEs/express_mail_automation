@@ -1,4 +1,3 @@
-// src/controllers/process.controller.ts
 import { Request, Response, } from 'express';
 import { ProcessRequestBody } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';

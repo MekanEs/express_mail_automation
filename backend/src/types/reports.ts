@@ -21,5 +21,4 @@ export interface ProcessReport {
         errors: number;
         errorMessages: string[];
     };
-
 }

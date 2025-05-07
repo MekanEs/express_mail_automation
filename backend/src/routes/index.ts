@@ -6,6 +6,7 @@ import checkAccounts from './check-accounts.route';
 import reports from './reports.route';
 import dashboardRoutes from './dashboard.route';
 import senderAggregate from './senderAggregate';
+import logsRoute from './logs.route';
 
 const mainRouter = Router();
 
@@ -16,7 +17,7 @@ mainRouter.use('/api/checkAccounts', checkAccounts);
 mainRouter.use('/api/reports', reports);
 mainRouter.use('/api/reports/sender-aggregates', senderAggregate);
 mainRouter.use('/api/dashboard', dashboardRoutes);
-
+mainRouter.use('/api/logs', logsRoute);
 
 mainRouter.use('/api', (request, response) => {
   response.json({ message: 'IMAP Processor API is running' });
