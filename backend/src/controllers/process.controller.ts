@@ -1,47 +1,54 @@
-import { Request, Response } from 'express';
-import { processMailbox } from '../services/process/processMailbox';
-import { getConfig } from '../utils/getConfig';
+// src/controllers/process.controller.ts
+import { Request, Response, } from 'express';
 import { ProcessRequestBody } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
-import { handleError } from '../utils/error-handler';
 import { logger } from '../utils/logger';
+import { processOrchestrationService } from '../services/process/processOrchestration.service';
 
 class ProcessController {
   public async processEmails(
     req: Request<Record<string, string>, Record<string, string>, ProcessRequestBody>,
-    res: Response
+    res: Response,
   ): Promise<void> {
-    const { accounts, emails, limit = 100, openRate = 70, repliesCount = 0 } = req.body;
+    const { accounts, emails, limit, openRate, repliesCount } = req.body;
+
+    if (!accounts || accounts.length === 0 || !emails || emails.length === 0) {
+      res.status(400).send({ message: 'Параметры "accounts" и "emails" обязательны и не должны быть пустыми.' });
+      return;
+    }
 
     const process_id = uuidv4();
-    res.send({ process_id, message: 'Процесс запущен' });
-    for (const account of accounts) {
-      const providerConfig = getConfig(account.provider);
 
-      for (const from of emails) {
-        const processParams = {
-          ...providerConfig,
-          process_id: process_id,
-          user: account.email || '',
-          from,
-          limit,
-          openRate: openRate,
-          outputPath: 'files',
-          provider: account.provider,
-          ...(account.is_token
-            ? { token: account.access_token || '' }
-            : { password: account.app_password || '' }),
-          repliesCount
-        };
-        try {
-          await processMailbox(processParams);
-          console.error(`Обработано ${account.email} от ${from}:`);
-        } catch (error) {
-          handleError(error, `Ошибка при обработке ${account.email} от ${from}:`)
-        }
-      }
-    }
-    logger.info(`Завершение запроса на запуск процесса ${process_id}`);
+    // Отправляем клиенту немедленный ответ
+    res.status(202).send({
+      process_id,
+      message: 'Запрос на обработку почты принят и выполняется в фоновом режиме.'
+    });
+
+    // Параметры для фоновой задачи
+    const orchestrationParams = {
+      accounts,
+      emails,
+      limit,
+      openRate,
+      repliesCount,
+      process_id,
+      baseOutputPath: 'files', // Можно вынести в .env или конфигурацию приложения
+      headlessBrowser: false      // headlessBrowser: "shell" // Или всегда headless
+    };
+
+    // Запускаем длительную обработку асинхронно
+    processOrchestrationService.startEmailProcessing(orchestrationParams)
+      .catch((err) => {
+        // Эта ошибка маловероятна, если startEmailProcessing сам обрабатывает ошибки внутри циклов.
+        // Но если сама функция startEmailProcessing выбросит исключение до начала циклов, оно попадет сюда.
+        logger.error(
+          `[Controller Process ID: ${process_id}] Критическая непредвиденная ошибка в запуске фоновой задачи processEmails:`,
+          err
+        );
+        // Ошибку клиенту уже не отправить, так как ответ 202 был дан.
+        // Здесь можно отправить уведомление в систему мониторинга.
+      });
   }
 }
 export const processController = new ProcessController();

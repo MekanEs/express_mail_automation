@@ -1,0 +1,181 @@
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { ProcessReport } from '../../../types/reports';
+import { logger } from '../../../utils/logger';
+import { handleError } from '../../../utils/error-handler';
+import { fileSystemService } from '../utils/fileSystem.service'; // Для удаления файлов
+import { reportService } from '../utils/report.service'; // Для обновления отчета
+import puppeteer from 'puppeteer-extra';
+import { Browser, LaunchOptions, Page } from 'puppeteer';
+puppeteer.use(StealthPlugin());
+
+export interface BrowserTask { // <--- ДОБАВИТЬ export
+  filePath: string;
+  linkToOpen?: string | null;
+  uid: number;
+  subject?: string | null; // Добавил subject, как мы обсуждали, для передачи в BrowserTask
+}
+
+export class BrowserInteractionService {
+  private async launchBrowser(headless: boolean | "shell" | undefined): Promise<Browser | null> {
+    // headless: "new" - рекомендуемый современный режим
+    // headless: true - старый headless
+    // headless: false - для отладки
+    const options: LaunchOptions = {
+      headless: headless,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Часто нужно в Docker/CI
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        // '--single-process', // Спорно, может помочь с памятью, но снизить стабильность
+        '--disable-gpu'
+      ]
+    };
+    try {
+      logger.info(`[Browser Service] Запуск браузера Puppeteer (headless: ${headless})...`);
+      const browser = await puppeteer.launch(options);
+      logger.info(`[Browser Service] Браузер Puppeteer успешно запущен.`);
+      return browser;
+    } catch (err) {
+      handleError(err, '[Browser Service] Ошибка при запуске браузера Puppeteer', 'launchBrowser');
+      return null;
+    }
+  }
+
+  public async closeBrowser(browser: Browser | null): Promise<void> {
+    if (browser && browser.connected) {
+      try {
+        logger.info('[Browser Service] Закрытие браузера Puppeteer...');
+        await browser.close();
+        logger.info('[Browser Service] Браузер Puppeteer успешно закрыт.');
+      } catch (err) {
+        handleError(err, '[Browser Service] Ошибка при закрытии браузера Puppeteer', 'closeBrowser');
+      }
+    } else {
+      logger.info('[Browser Service] Браузер не был запущен или уже закрыт.');
+    }
+  }
+
+  private async openLocalEmailPage(page: Page, task: BrowserTask, report: ProcessReport): Promise<void> {
+    logger.info(`[Browser Service] Открытие локального файла письма: ${task.filePath} (UID: ${task.uid})`);
+    try {
+      await page.goto(`file://${task.filePath}`, { // Важно: file:// для локальных файлов
+        waitUntil: 'networkidle2',
+        timeout: 20000,
+      });
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Прокрутка
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
+
+      reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
+      logger.info(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
+
+      // Попытка клика по первой ссылке, если она есть (необязательно)
+      // Это может быть частью открытия письма или отдельным шагом
+      try {
+        const firstLink = await page.$('a');
+        if (firstLink) {
+          // await firstLink.click(); // Это может вызвать навигацию, которую мы не всегда хотим здесь
+          logger.debug(`[Browser Service] Первая ссылка найдена в ${task.filePath}, но не кликнута на этом этапе.`);
+        }
+      } catch (clickErr) {
+        logger.warn(`[Browser Service] Не удалось найти/кликнуть первую ссылку в ${task.filePath}: ${clickErr}`);
+      }
+
+    } catch (err) {
+      const errorMessage = `Ошибка при открытии локального файла ${task.filePath} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
+      handleError(err, errorMessage, 'openLocalEmailPage');
+      reportService.updateReportWithEmailStats(report, 0, 0, errorMessage); // emails_errors инкрементируется
+    } finally {
+      fileSystemService.deleteFile(task.filePath); // Удаляем временный HTML файл
+    }
+  }
+
+  private async openExternalLinkPage(page: Page, task: BrowserTask, report: ProcessReport): Promise<void> {
+    if (!task.linkToOpen) {
+      logger.info(`[Browser Service] Нет ссылки для открытия для письма UID: ${task.uid}.`);
+      return;
+    }
+    logger.info(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
+    reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
+
+    try {
+      await page.goto(task.linkToOpen, {
+        waitUntil: 'networkidle2',
+        timeout: 30000, // Таймаут для внешних ссылок может быть больше
+      });
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000)); // Случайная задержка
+
+      reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+      logger.info(`[Browser Service] Внешняя ссылка ${task.linkToOpen} (UID: ${task.uid}) успешно открыта.`);
+    } catch (err) {
+      const errorMessage = `Ошибка при открытии внешней ссылки ${task.linkToOpen} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
+      handleError(err, errorMessage, 'openExternalLinkPage');
+      reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
+    }
+  }
+
+  /**
+   * Обрабатывает список задач (открытие писем и ссылок) в браузере.
+   * Управляет открытием и закрытием браузера.
+   */
+  public async processTasksWithBrowser(
+    tasks: BrowserTask[],
+    openRatePercent: number, // Процент писем, для которых нужно открывать ссылки
+    report: ProcessReport,
+    headless: boolean | "shell" | undefined
+  ): Promise<void> {
+    if (!tasks || tasks.length === 0) {
+      logger.info('[Browser Service] Нет задач для обработки в браузере.');
+      return;
+    }
+
+    const browser = await this.launchBrowser(headless);
+    if (!browser) {
+      logger.error('[Browser Service] Не удалось запустить браузер, обработка задач прервана.');
+      // Можно обновить отчет общей ошибкой браузера
+      tasks.forEach(task => {
+        reportService.updateReportWithEmailStats(report, 0, 0, `Browser launch failed for UID ${task.uid}`);
+        if (task.filePath) fileSystemService.deleteFile(task.filePath); // Очистка, если файл был создан
+      });
+      return;
+    }
+
+    let linksToOpenCount = Math.ceil((tasks.length * openRatePercent) / 100);
+    logger.info(`[Browser Service] Всего задач: ${tasks.length}. Планируется открыть ссылок: ${linksToOpenCount}.`);
+
+    try {
+      for (const task of tasks) {
+        const emailPage = await browser.newPage();
+        await this.configurePage(emailPage);
+        await this.openLocalEmailPage(emailPage, task, report);
+        await emailPage.close();
+
+        if (task.linkToOpen && linksToOpenCount > 0) {
+          const linkPage = await browser.newPage();
+          await this.configurePage(linkPage);
+          await this.openExternalLinkPage(linkPage, task, report);
+          await linkPage.close();
+          linksToOpenCount--;
+        }
+        // Небольшая пауза между обработкой задач
+        await new Promise(r => setTimeout(r, Math.floor(Math.random() * 500) + 200));
+      }
+    } catch (err) {
+      // Общая ошибка цикла обработки задач
+      handleError(err, '[Browser Service] Критическая ошибка в цикле обработки задач браузера', 'processTasksWithBrowser');
+      // Можно добавить обновление отчета общей ошибкой
+    } finally {
+      await this.closeBrowser(browser);
+    }
+  }
+
+  private async configurePage(page: Page): Promise<void> {
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36');
+    // Можно добавить другие настройки страницы, например, viewport
+    // await page.setViewport({ width: 1280, height: 800 });
+  }
+}
+
+export const browserInteractionService = new BrowserInteractionService();

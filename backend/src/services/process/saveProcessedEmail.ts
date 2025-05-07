@@ -30,5 +30,5 @@ export async function SaveProcessedEmail(
     const link = doc('a:first').attr('href');
     ProcessObject.push({ file: htmlPath, link, uid: message.uid });
 
-    await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 3000)));
+    await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 1000)));
 }

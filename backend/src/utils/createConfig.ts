@@ -1,14 +1,16 @@
 import { ImapFlowOptions } from 'imapflow';
+import { logger } from './logger';
 
 export function createImapConfig({
   user,
   host,
   password,
   token,
-
+  log
 }: {
   user: string;
   host: string;
+  log: boolean
   password?: string;
   token?: string;
   verifyOnly?: boolean
@@ -37,7 +39,7 @@ export function createImapConfig({
     host,
     port: 993,
     secure: true,
-    logger: false,
+    logger: log ? logger : false,
     auth: authConfig
   };
 
