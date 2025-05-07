@@ -4,6 +4,12 @@ import { getConfig } from '../../utils/getConfig'; // Глобальная ко�
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { accountProcessingService, AccountProcessingParams } from './accountProcessing.service'; // Наш новый сервис
+import { Browser } from 'puppeteer'; // Импортируем тип Browser
+import { browserInteractionService, BrowserTask } from './browser/browserInteraction.service'; // Импортируем сервис и тип
+import { reportService } from './utils/report.service';
+import { fileSystemService } from './utils/fileSystem.service';
+import path from 'path';
+import fs from 'fs';
 
 interface StartProcessingParams extends ProcessRequestBody {
   process_id: string;
@@ -33,61 +39,98 @@ export class ProcessOrchestrationService {
     logger.info(`[Orchestration ID: ${process_id}] Запущен глобальный процесс обработки почты.`);
     logger.debug(`[Orchestration ID: ${process_id}] Параметры:`, { accountsCount: accounts.length, emailsCount: emails.length, limit, openRate, repliesCount });
 
-    for (const account of accounts) {
-      if (!account.email) {
-        logger.warn(`[Orchestration ID: ${process_id}] Пропуск аккаунта без email: ID ${account.id}`);
-        continue;
+    const allBrowserTasks: BrowserTask[] = []; // Собираем все задачи для браузера
+    const tempDirectories: string[] = []; // Для отслеживания директорий, которые нужно очистить
+    const browserProcessingReport = reportService.initializeReport(process_id, 'aggregate_browser', 'N/A');
+    
+    let browser: Browser | null = null; // Объявляем браузер здесь
+
+    try {
+      // Запускаем браузер один раз для всех аккаунтов
+      browser = await browserInteractionService.launchBrowser(headlessBrowser);
+      if (!browser) {
+        logger.error(`[Orchestration ID: ${process_id}] Не удалось запустить браузер. Обработка продолжится без браузерных задач.`);
       }
-      const providerConfig = getConfig(account.provider);
-      if (!providerConfig) {
-        logger.error(`[Orchestration ID: ${process_id}] Не найдена конфигурация для провайдера ${account.provider} аккаунта ${account.email}. Пропуск.`);
-        // Здесь можно создать отчет об ошибке для этого аккаунта
-        continue;
-      }
 
-      for (const fromEmail of emails) {
-        logger.info(`[Orchestration ID: ${process_id}] Подготовка к обработке для аккаунта ${account.email} от ${fromEmail}.`);
+      for (const account of accounts) {
+        if (!account.email) {
+          logger.warn(`[Orchestration ID: ${process_id}] Пропуск аккаунта без email: ID ${account.id}`);
+          continue;
+        }
+        const providerConfig = getConfig(account.provider);
+        if (!providerConfig) {
+          logger.error(`[Orchestration ID: ${process_id}] Не найдена конфигурация для провайдера ${account.provider} аккаунта ${account.email}. Пропуск.`);
+          continue;
+        }
 
-        const accountProcessingParams: AccountProcessingParams = {
-          account,
-          fromEmail,
-          providerConfig,
-          process_id,
-          limit,
-          openRatePercent: openRate, // Переименовали для ясности в AccountProcessingParams
-          repliesToAttempt: repliesCount, // Переименовали
-          baseOutputPath,
-          headlessBrowser
-        };
+        for (const fromEmail of emails) {
+          logger.info(`[Orchestration ID: ${process_id}] Подготовка к обработке для аккаунта ${account.email} от ${fromEmail}.`);
 
-        try {
-          // Вызываем обработку для конкретного аккаунта и отправителя.
-          // Не используем await здесь, если хотим, чтобы обработка разных аккаунтов/отправителей
-          // шла "параллельно" (в рамках одного Node.js процесса, т.е. конкурентно).
-          // Однако, это может создать большую нагрузку.
-          // Для последовательной обработки (один за другим): await accountProcessingService.processAccountFromSender(...)
-          // Для "параллельной" (конкурентной):
-          accountProcessingService.processAccountFromSender(accountProcessingParams)
-            .then(() => {
-              logger.info(`[Orchestration ID: ${process_id}] Успешно завершена (или поставлена в очередь) обработка для ${account.email} от ${fromEmail}.`);
-            })
-            .catch(err => {
-              // Эта ошибка должна быть уже залогирована внутри processAccountFromSender,
-              // но можно добавить дополнительное логирование на уровне оркестратора.
-              handleError(err, `[Orchestration ID: ${process_id}] Критическая ошибка при обработке ${account.email} от ${fromEmail} на уровне AccountProcessingService:`);
-            });
-          // Если нужна реальная параллельность, то каждая такая задача должна уходить в очередь,
-          // а воркеры будут их разбирать. Пока что это конкурентное выполнение в одном потоке.
+          // Создаем путь для временных файлов этого аккаунта
+          const projectRoot = path.resolve(__dirname, '..',);
+          const uniqueSubfolder = `${process_id}_${account.email.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
+          const tempDirPath = path.join(projectRoot, baseOutputPath, uniqueSubfolder);
+          tempDirectories.push(tempDirPath);
 
-        } catch (orchestrationErr) {
-          // Ошибки на уровне самого цикла оркестрации (маловероятно здесь, если нет await)
-          handleError(orchestrationErr, `[Orchestration ID: ${process_id}] Ошибка в цикле оркестрации для ${account.email} от ${fromEmail}:`);
+          const accountProcessingParams: AccountProcessingParams = {
+            account,
+            fromEmail,
+            providerConfig,
+            process_id,
+            limit,
+            openRatePercent: openRate,
+            repliesToAttempt: repliesCount,
+            baseOutputPath,
+            headlessBrowser
+          };
+
+          try {
+            // Используем await для последовательной обработки аккаунтов/писем
+            const tasksFromAccount = await accountProcessingService.processAccountFromSender(accountProcessingParams);
+            allBrowserTasks.push(...tasksFromAccount); // Добавляем задачи в общий список
+            logger.info(`[Orchestration ID: ${process_id}] Получено ${tasksFromAccount.length} браузерных задач от аккаунта ${account.email}.`);
+          } catch (accountProcessingError) {
+            handleError(accountProcessingError, `[Orchestration ID: ${process_id}] Ошибка при обработке ${account.email} от ${fromEmail}:`);
+          }
         }
       }
+
+      // Обработка всех собранных задач в браузере ПОСЛЕ всех циклов
+      if (allBrowserTasks.length > 0 && browser) {
+        logger.info(`[Orchestration ID: ${process_id}] Запуск обработки ${allBrowserTasks.length} задач в браузере.`);
+        await browserInteractionService.processTasksWithBrowser(browser, allBrowserTasks, openRate, browserProcessingReport);
+        logger.info(`[Orchestration ID: ${process_id}] Завершена обработка ${allBrowserTasks.length} задач в браузере.`);
+      } else {
+        logger.info(`[Orchestration ID: ${process_id}] Нет задач для обработки в браузере или браузер недоступен.`);
+      }
+    } catch (orchestrationErr) {
+      handleError(orchestrationErr, `[Orchestration ID: ${process_id}] Критическая ошибка в оркестрации:`);
+    } finally {
+      // Закрываем браузер в любом случае
+      if (browser) {
+        await browserInteractionService.closeBrowser(browser);
+      }
+      
+      // Очищаем все временные директории
+      for (const dirPath of tempDirectories) {
+        try {
+          await fileSystemService.cleanupDirectory(dirPath);
+          logger.info(`[Orchestration ID: ${process_id}] Очищена временная директория ${dirPath}.`);
+          
+          // Пытаемся удалить пустую директорию
+          try {
+            await fs.promises.rmdir(dirPath);
+            logger.info(`[Orchestration ID: ${process_id}] Удалена пустая директория ${dirPath}.`);
+          } catch (rmdirErr) {
+            handleError(rmdirErr, `[Orchestration ID: ${process_id}] Не удалось удалить директорию ${dirPath}`);
+          }
+        } catch (cleanupErr) {
+          handleError(cleanupErr, `[Orchestration ID: ${process_id}] Ошибка при очистке директории ${dirPath}`);
+        }
+      }
+      
+      logger.info(`[Orchestration ID: ${process_id}] Завершение всего процесса обработки почты.`);
     }
-    // Важно: этот лог появится сразу, если вызовы processAccountFromSender не ожидаются (без await).
-    // Если они ожидаются, то после завершения всех.
-    logger.info(`[Orchestration ID: ${process_id}] Все задачи по обработке почты были запущены/поставлены в очередь.`);
   }
 }
 

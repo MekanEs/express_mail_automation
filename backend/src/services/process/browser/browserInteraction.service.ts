@@ -8,7 +8,7 @@ import puppeteer from 'puppeteer-extra';
 import { Browser, LaunchOptions, Page } from 'puppeteer';
 puppeteer.use(StealthPlugin());
 
-export interface BrowserTask { // <--- ДОБАВИТЬ export
+export interface BrowserTask {
   filePath: string;
   linkToOpen?: string | null;
   uid: number;
@@ -16,7 +16,7 @@ export interface BrowserTask { // <--- ДОБАВИТЬ export
 }
 
 export class BrowserInteractionService {
-  private async launchBrowser(headless: boolean | "shell" | undefined): Promise<Browser | null> {
+  public async launchBrowser(headless: boolean | "shell" | undefined): Promise<Browser | null> {
     // headless: "new" - рекомендуемый современный режим
     // headless: true - старый headless
     // headless: false - для отладки
@@ -108,25 +108,23 @@ export class BrowserInteractionService {
 
   /**
    * Обрабатывает список задач (открытие писем и ссылок) в браузере.
-   * Управляет открытием и закрытием браузера.
+   * Принимает экземпляр браузера как аргумент, не управляет его жизненным циклом.
    */
   public async processTasksWithBrowser(
+    browser: Browser | null,
     tasks: BrowserTask[],
     openRatePercent: number, // Процент писем, для которых нужно открывать ссылки
-    report: ProcessReport,
-    headless: boolean | "shell" | undefined
+    report: ProcessReport
   ): Promise<void> {
     if (!tasks || tasks.length === 0) {
       logger.info('[Browser Service] Нет задач для обработки в браузере.');
       return;
     }
-
-    const browser = await this.launchBrowser(headless);
+    
     if (!browser) {
-      logger.error('[Browser Service] Не удалось запустить браузер, обработка задач прервана.');
-      // Можно обновить отчет общей ошибкой браузера
+      logger.error('[Browser Service] Экземпляр браузера не передан, обработка задач прервана.');
       tasks.forEach(task => {
-        reportService.updateReportWithEmailStats(report, 0, 0, `Browser launch failed for UID ${task.uid}`);
+        reportService.updateReportWithEmailStats(report, 0, 0, `Browser instance not available for UID ${task.uid}`);
         if (task.filePath) fileSystemService.deleteFile(task.filePath); // Очистка, если файл был создан
       });
       return;
@@ -156,9 +154,9 @@ export class BrowserInteractionService {
       // Общая ошибка цикла обработки задач
       handleError(err, '[Browser Service] Критическая ошибка в цикле обработки задач браузера', 'processTasksWithBrowser');
       // Можно добавить обновление отчета общей ошибкой
-    } finally {
-      await this.closeBrowser(browser);
+      reportService.updateReportWithEmailStats(report, 0, 0, `Browser task processing loop failed: ${err instanceof Error ? err.message : err}`);
     }
+    // Не закрываем браузер здесь - это теперь ответственность вызывающего кода
   }
 
   private async configurePage(page: Page): Promise<void> {

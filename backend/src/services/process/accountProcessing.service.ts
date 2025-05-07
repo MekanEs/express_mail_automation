@@ -4,16 +4,15 @@ import { handleError } from '../../utils/error-handler';
 import { imapClientService } from './client/imapClient.service';
 import { spamHandlingService } from './mailbox/spamHandling.service';
 import { searchMessagesService } from './email/searchMessages.service';
-import { emailContentService } from './email/emailContent.service'; // BrowserTask теперь импортируется отсюда
-import { BrowserTask } from './browser/browserInteraction.service'; // <--- ИМПОРТИРУЕМ BrowserTask ОТСЮДА
+import { emailContentService } from './email/emailContent.service';
+import { BrowserTask } from './browser/browserInteraction.service'; // Импортируем BrowserTask
 import { replyService } from './reply/reply.service';
-import { browserInteractionService } from './browser/browserInteraction.service';
 import { reportService } from './utils/report.service';
 import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
 import { fileSystemService } from './utils/fileSystem.service';
-// src/services/process/accountProcessing.service.ts
-import path from 'path'; // Убедись, что path импортирован
+import path from 'path';
 import fs from 'fs';
+
 export interface AccountProcessingParams {
   account: AccountType;
   fromEmail: string;
@@ -27,23 +26,21 @@ export interface AccountProcessingParams {
 }
 
 export class AccountProcessingService {
-  public async processAccountFromSender(params: AccountProcessingParams): Promise<void> {
+  public async processAccountFromSender(params: AccountProcessingParams): Promise<BrowserTask[]> {
     const {
       account,
       fromEmail,
       providerConfig,
       process_id,
       limit,
-      openRatePercent,
       repliesToAttempt,
-      baseOutputPath,
-      headlessBrowser
+      baseOutputPath
     } = params;
 
     const userEmail = account.email;
     if (!userEmail) {
       logger.error(`[AccountProcessing] Аккаунт ID ${account.id} не имеет email адреса. Обработка пропущена.`);
-      return;
+      return [];
     }
 
     logger.info(`[AccountProcessing] Начало обработки для аккаунта: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
@@ -61,7 +58,7 @@ export class AccountProcessingService {
       reportService.updateReportWithEmailStats(errorReport, 0, 0, "IMAP connection failed");
       reportService.finalizeReportStatus(errorReport);
       await reportService.submitReport(errorReport, providerConfig.mailboxes.join(', '));
-      return;
+      return [];
     }
 
     const report = reportService.initializeReport(process_id, userEmail, fromEmail);
@@ -72,7 +69,7 @@ export class AccountProcessingService {
     fileSystemService.createDirectoryIfNotExists(tempDirPath);
 
     let remainingReplies = repliesToAttempt;
-    const browserTasks: BrowserTask[] = []; // Тип BrowserTask теперь должен быть доступен
+    const browserTasks: BrowserTask[] = []; // Задачи для браузера, которые мы вернем
 
     try {
       const sentMailboxPath = await mailboxDiscoveryService.findSentMailbox(client, userEmail);
@@ -173,13 +170,6 @@ export class AccountProcessingService {
         }
       }
 
-      if (browserTasks.length > 0) {
-        logger.info(`[AccountProcessing] Запуск обработки ${browserTasks.length} писем в браузере для ${userEmail}.`);
-        await browserInteractionService.processTasksWithBrowser(browserTasks, openRatePercent, report, headlessBrowser);
-      } else {
-        logger.info(`[AccountProcessing] Нет задач для обработки в браузере для ${userEmail}.`);
-      }
-
     } catch (generalErr) {
       const errMsg = `Общая ошибка при обработке аккаунта ${userEmail}: ${generalErr instanceof Error ? generalErr.message : generalErr}`;
       handleError(generalErr, errMsg, 'processAccountFromSender');
@@ -188,15 +178,10 @@ export class AccountProcessingService {
       reportService.finalizeReportStatus(report);
       await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       await imapClientService.disconnectClient(client, userEmail);
-      await fileSystemService.cleanupDirectory(tempDirPath);
-      try {
-        await fs.promises.rmdir(tempDirPath); // rmdir удаляет пустую папку
-        logger.info(`[AccountProcessing] Временная директория ${tempDirPath} удалена.`);
-      } catch (rmErr) {
-        handleError(rmErr, `[AccountProcessing] Не удалось удалить временную директорию ${tempDirPath}`);
-      }
-      logger.info(`[AccountProcessing] Завершена обработка для аккаунта: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
+      logger.info(`[AccountProcessing] Завершена IMAP/SMTP обработка для: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
     }
+    
+    return browserTasks; // Возвращаем задачи для браузера
   }
 }
 
