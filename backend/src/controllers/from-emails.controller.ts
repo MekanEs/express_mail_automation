@@ -5,7 +5,6 @@ class FromEmailsController {
     public async getEmails(_req: Request, response: Response) {
         const from = await supabaseClient.from('from_emails').select();
         response.status(200).send(from);
-        console.log(from);
         return;
     }
     public async postEmails(req: Request, response: Response) {

@@ -1,11 +1,11 @@
 import { FetchMessageObject } from "imapflow";
 import * as nodemailer from 'nodemailer';
 import MailComposer from "nodemailer/lib/mail-composer";
-import { handleError } from "../../utils/error-handler";
 import { simpleParser } from 'mailparser';
-import { logger } from "../../utils/logger";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { AuthenticationType } from "nodemailer/lib/smtp-connection";
+import { logger } from "../../../utils/logger";
+import { handleError } from "../../../utils/error-handler";
 
 const warmupReplies = [
     'Благодарю за информацию. Обязательно учту в дальнейшей работе.  ',
@@ -45,12 +45,21 @@ interface SmtpAuth {
     token?: string;
 }
 
-export const createReply = async (
+interface EmailContent {
+    from: string;
+    to: string;
+    subject: string;
+    inReplyTo: string;
+    references: string;
+    text: string;
+    html: string;
+}
+
+// Step 1: Create the MIME message buffer
+export const createReplyBuffer = async (
     message: FetchMessageObject,
-    user: string,
-    smtpHost: string,
-    auth: SmtpAuth
-): Promise<Buffer | null> => {
+    user: string
+): Promise<{ mimeMessageBuffer: Buffer | null; emailContent: EmailContent | null }> => {
     let toAddress = '';
     try {
         if (!message?.envelope) throw new Error('Envelope not found');
@@ -67,16 +76,15 @@ export const createReply = async (
         const quotedHtml = `здравствуйте,<br>${text}<br><br>--- Original message ---<br>From: ${message.envelope.from[0].name || ''} &lt;${toAddress}&gt;<br>Subject: ${message.envelope.subject || ''}<br>Date: ${message.envelope.date || ''}<br><br><blockquote>${originalHtml}</blockquote>`;
         const quotedText = `здравствуйте,\n${text}\n\n--- Original message ---\nFrom: ${message.envelope.from[0].name || ''} <${toAddress}>\nSubject: ${message.envelope.subject || ''}\nDate: ${message.envelope.date || ''}\n\n> ${originalText.split('\n').join('\n> ')}`;
 
-        let authentication: AuthenticationType
-        if (auth.token) {
-            authentication = { type: "OAUTH2", accessToken: auth.token, user: user }
-        }
-        else if (auth.password) {
-            authentication = { type: "LOGIN", user: user, pass: auth.password }
-        }
-        else {
-            throw new Error('No password or token provided for SMTP authentication');
-        }
+        const emailContent: EmailContent = {
+            from: user,
+            to: toAddress,
+            subject: `Re: ${message.envelope.subject}`,
+            inReplyTo: message.envelope.messageId,
+            references: message.envelope.messageId,
+            text: quotedText,
+            html: quotedHtml
+        };
 
         const mail = new MailComposer({
             from: user,
@@ -98,6 +106,33 @@ export const createReply = async (
                 }
             });
         });
+
+        return { mimeMessageBuffer, emailContent };
+    } catch (err) {
+        logger.error(`Ошибка при создании ответа ${toAddress ? 'to ' + toAddress : ''}:`, err);
+        handleError(err, `Failed creating reply to ${toAddress || 'unknown'}`, 'createReplyBuffer');
+        return { mimeMessageBuffer: null, emailContent: null };
+    }
+};
+
+// Step 2: Send the email
+export const sendReplyEmail = async (
+    emailContent: EmailContent,
+    user: string,
+    smtpHost: string,
+    auth: SmtpAuth,
+): Promise<void> => {
+    try {
+        let authentication: AuthenticationType;
+        if (auth.token) {
+            authentication = { type: "OAUTH2", accessToken: auth.token, user: user };
+        }
+        else if (auth.password) {
+            authentication = { type: "LOGIN", user: user, pass: auth.password };
+        }
+        else {
+            throw new Error('No password or token provided for SMTP authentication');
+        }
 
         // Try different port/security combinations
         const transportOptions: SMTPTransport.Options = {
@@ -123,7 +158,7 @@ export const createReply = async (
             await transporter.verify();
             logger.info('SMTP connection verified successfully');
         } catch (verifyErr) {
-            handleError(verifyErr, `Failed to connect with port 587 (STARTTLS)`, 'createReply/verify');
+            handleError(verifyErr, `Failed to connect with port 587 (STARTTLS)`, 'sendReplyEmail/verify');
 
             // Try again with port 465 (SSL)
             transportOptions.port = 465;
@@ -135,7 +170,7 @@ export const createReply = async (
                 await transporter.verify();
                 logger.info('SMTP SSL connection verified successfully');
             } catch (sslErr) {
-                handleError(sslErr, `Failed to connect with port 465 (SSL)`, 'createReply/verify');
+                handleError(sslErr, `Failed to connect with port 465 (SSL)`, 'sendReplyEmail/verify');
 
                 // One last try with port 25 (basic)
                 transportOptions.port = 25;
@@ -150,30 +185,27 @@ export const createReply = async (
         // Then continue with your sendMail call
         try {
             const info = await transporter.sendMail({
-                from: user,
-                to: toAddress,
-                subject: `Re: ${message.envelope.subject}`,
-                inReplyTo: message.envelope.messageId,
-                references: message.envelope.messageId,
+                from: emailContent.from,
+                to: emailContent.to,
+                subject: emailContent.subject,
+                inReplyTo: emailContent.inReplyTo,
+                references: emailContent.references,
                 envelope: {
-                    from: user,
-                    to: toAddress
+                    from: emailContent.from,
+                    to: emailContent.to
                 },
-                text: quotedText,
-                html: quotedHtml
+                text: emailContent.text,
+                html: emailContent.html
             });
 
-            logger.info(`Reply sent successfully via SMTP to ${toAddress}. Message ID: ${info.messageId}`);
-            return mimeMessageBuffer;
+            logger.info(`Reply sent successfully via SMTP to ${emailContent.to}. Message ID: ${info.messageId}`);
         } catch (sendErr) {
-            handleError(sendErr, `Failed to send reply via SMTP`, 'createReply/sendMail');
-
-            throw sendErr; // Let the outer catch handle it
+            handleError(sendErr, `Failed to send reply via SMTP`, 'sendReplyEmail/sendMail');
         }
-
     } catch (err) {
-        logger.error(`Ошибка при создании и отправке ответа ${toAddress ? 'to ' + toAddress : ''}:`, err);
-        handleError(err, `Failed sending reply to ${toAddress || 'unknown'}`, 'createReply/sendMail');
-        return null;
+        logger.error(`Ошибка при отправке ответа to ${emailContent.to}:`, err);
+        handleError(err, `Failed sending reply to ${emailContent.to}`, 'sendReplyEmail');
     }
 };
+
+

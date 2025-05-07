@@ -1,21 +1,27 @@
 import path from 'path';
-import { FetchMessageObject, ImapFlow } from 'imapflow';
-import { createImapConfig } from '../../utils/createConfig';
 import { ProcessReport } from '../../types/reports';
 import { createDir } from './utils/createDir';
 import { searchMessages } from './utils/searchUnseen';
-import { spamBoxesCheck } from './spamBoxCheckAndRemove';
+import { spamBoxesCheck } from './mailbox/spamBoxCheckAndRemove';
 import { getBaseReport } from './utils/getBaseReport';
 import { sendReport } from './utils/sendReport';
-import { connectClient } from './connectClient';
+import { connectClient } from './client/connectClient';
 import { SaveProcessedEmail } from './saveProcessedEmail';
 import { handleBrowser } from './handleBrowser';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { markMessagesAsSeen } from './utils/markMessagesAsSeen';
-import { createReply } from './createReply';
 import { Database } from '../../clients/database.types';
-import { Provider } from '../../types/types';
+import { findSentMailbox } from './mailbox/findSentMailbox';
+import { ManageReply, } from './reply/sendReply';
+import { appendReply } from './reply/appendReply';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser } from 'puppeteer';
+import { disconnectClient } from './client/disconnectClient';
+import { createImapClient } from './client/createImapClient';
+import { findDraftMailbox } from './mailbox/findDraftMailbox';
+puppeteer.use(StealthPlugin());
 
 type processMailBoxArgs = {
     user: string;
@@ -53,46 +59,29 @@ export async function processMailbox({
         openRate = 70;
     }
 
-    const config = createImapConfig({ user, host, password, token });
-    logger.info(config)
-    const client = new ImapFlow(config);
-    logger.info("подключен", user)
+
+    const client = createImapClient(user, host, password, token)
+
+
     const dirPath = path.join(__dirname, '..', outputPath);
     createDir(dirPath);
-    const ProcessObject: {
-        file: string;
-        link: string;
-        uid: number;
-        seq: number
-    }[] = [];
 
-    const remainingReplies = repliesCount;
+
+    let remainingReplies = repliesCount;
     let sentMailboxPath: string | null = null;
-
+    let draftMailboxPath: string | null = null;
+    const browser: Browser = await puppeteer.launch({ headless: false });
     try {
         const connectionStatus = await connectClient(client)
         if (!connectionStatus) {
             logger.debug('no connection')
             return
         }
+        logger.info("подключен", user)
 
-        try {
-            const allMailboxes = await client.list();
-            const foundSentBox = allMailboxes.find(box =>
-                box.specialUse === '\\Sent' ||
-                box.path.toLowerCase() === 'sent' ||
-                box.path.toLowerCase() === 'sent items' ||
-                box.path.toLowerCase() === 'отправленные'
-            );
-            if (foundSentBox) {
-                sentMailboxPath = foundSentBox.path;
-                logger.info(`Found 'Sent' mailbox: ${sentMailboxPath}`);
-            } else {
-                logger.warn(`Could not automatically detect 'Sent' mailbox for user ${user}. Replies will not be saved to Sent.`);
-            }
-        } catch (listErr) {
-            handleError(listErr, `Failed to list mailboxes to find Sent folder for ${user}`, 'client.list');
-        }
+
+        sentMailboxPath = await findSentMailbox(client, user)
+        draftMailboxPath = await findDraftMailbox(client, user)
 
         const { spamListResult, uidMaps } = await spamBoxesCheck({
             client,
@@ -110,6 +99,12 @@ export async function processMailbox({
         });
 
         for (const inbox of mailboxes) {
+            const ProcessObject: {
+                file: string;
+                link: string;
+                uid: number;
+                seq: number
+            }[] = [];
             const markAsSeen: number[] = [];
             let lock;
             try {
@@ -122,7 +117,7 @@ export async function processMailbox({
             }
             let list: number[] | undefined
             try {
-                list = await searchMessages({ from, client, inbox });
+                list = await searchMessages({ from, client, inbox, });
                 logger.info(`found ${list.length} messages in ${inbox}`)
                 if (!list.length) {
                     lock.release();
@@ -145,6 +140,7 @@ export async function processMailbox({
                         { source: true, uid: true, flags: true, labels: true, envelope: true },
                         { uid: true }
                     );
+                    logger.info(message)
                     messages.push(message)
                 } catch (fetchErr) {
                     handleError(fetchErr, `Failed to fetch message UID ${uid} from ${inbox}`, 'fetchOne');
@@ -172,13 +168,19 @@ export async function processMailbox({
             }
             for (const message of messages) {
                 const { uid } = message
-                console.log('remainingReplies', remainingReplies)
                 if (remainingReplies > 0) {
-
-                    const { replySentSuccessfully, sentReplyBuffer } = await sendEmail({ uid, user, remainingReplies, message, smtpHost, password, token, report })
-
-                    await appendReply({ replySentSuccessfully, sentReplyBuffer, sentMailboxPath, client, provider, uid })
+                    console.log('remainingReplies', remainingReplies)
+                    const { replySentSuccessfully, ReplyBuffer } = await ManageReply({ uid, user, remainingReplies, message, smtpHost, password, token, report })
+                    if (replySentSuccessfully) {
+                        remainingReplies -= 1
+                    }
+                    await appendReply({ replySentSuccessfully, ReplyBuffer, sentMailboxPath, draftMailboxPath, client, provider, uid, })
                 }
+            }
+            if (ProcessObject.length > 0) {
+                await handleBrowser({ browser, openRate, ProcessObject, report });
+            } else {
+                logger.info("No emails processed for link handling.");
             }
 
             try {
@@ -196,11 +198,6 @@ export async function processMailbox({
             }
         }
 
-        if (ProcessObject.length > 0) {
-            await handleBrowser({ openRate, ProcessObject, report });
-        } else {
-            logger.info("No emails processed for link handling.");
-        }
 
         if (report.emails.errors === 0 && report.links.errors === 0) {
             report.status = 'success';
@@ -210,58 +207,16 @@ export async function processMailbox({
 
         await sendReport({ from, inbox: mailboxes.join(', '), process_id, report, user });
     } catch (err) {
-        logger.error('Unhandled error during mailbox processing:', err, user);
-        handleError(err, 'processMailbox top level error')
+        handleError(err, `Unhandled error during mailbox processing: ${user}`, 'processMailbox')
     } finally {
-        try {
-            if (client.usable) {
-                await client.logout();
-                logger.info('IMAP client logout completed.');
-            } else {
-                logger.info('IMAP client already logged out or unusable.');
-            }
-        } catch (logoutErr) {
-            logger.error('Error during IMAP client logout:', logoutErr);
+        disconnectClient(client)
+        if (browser) {
+            await browser.close()
         }
     }
 }
 
 
-const sendEmail = async ({ uid, user, remainingReplies, message, smtpHost, password, token, report, }: { uid: number; user: string; remainingReplies: number; message: FetchMessageObject; smtpHost: string; password: string | undefined; token: string | undefined; report: ProcessReport; }) => {
-    let replySentSuccessfully = false;
-    let sentReplyBuffer: Buffer | null = null;
-    try {
-        logger.info(`Attempting to send reply for UID ${uid} ${user}`);
-        sentReplyBuffer = await createReply(message, user, smtpHost, { password, token });
-        report.replies_sent += 1
-        if (sentReplyBuffer) {
-            replySentSuccessfully = true;
-            remainingReplies -= 1;
-            logger.info(`Reply sent via SMTP for UID ${uid}. Remaining replies: ${remainingReplies}`);
-            await new Promise(resolve => setTimeout(resolve, 500));
-        } else {
-            logger.warn(`Failed to send reply for UID ${uid} (createReply returned null).`);
-        }
-    } catch (replyErr) {
-        logger.error(`Error during createReply call for UID ${uid}`, replyErr);
-        handleError(replyErr, `Error calling createReply for UID ${uid}`, 'createReply');
-    }
-    return { replySentSuccessfully, sentReplyBuffer }
 
-}
 
-const appendReply = async ({ replySentSuccessfully, sentReplyBuffer, sentMailboxPath, client, provider, uid }: { replySentSuccessfully: boolean; sentReplyBuffer: Buffer<ArrayBufferLike> | null; sentMailboxPath: string | null; client: ImapFlow; provider: Provider; uid: number }) => {
-    if (provider !== 'google') {
-        if (replySentSuccessfully && sentReplyBuffer && sentMailboxPath) {
-            try {
-                logger.info(`Appending sent reply for UID ${uid} to ${sentMailboxPath}`);
-                const appendResult = await client.append(sentMailboxPath, sentReplyBuffer, ['\\Seen']);
-                logger.info(`Successfully appended reply to ${sentMailboxPath}`, appendResult);
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (appendErr) {
-                logger.error(`Failed to append sent reply for UID ${uid} to ${sentMailboxPath}`, appendErr);
-                handleError(appendErr, `Failed to append reply to Sent folder for UID ${uid}`, 'client.append');
-            }
-        }
-    }
-}
+

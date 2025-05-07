@@ -2,6 +2,7 @@ import express, { Request, Response, } from 'express';
 import path from 'path';
 import mainRouter from './routes';
 import cors from 'cors';
+import { errorMiddleware } from './middleware/error.middleware';
 
 const app = express();
 
@@ -18,7 +19,7 @@ app.use(express.json());
 
 // Все основные API маршруты
 app.use(mainRouter);
-
+app.use(errorMiddleware); // Add this line
 // Обработка запросов к статике (если не найдено API)
 app.get('*', (_, res) => {
   res.sendFile(path.join(staticPath, 'index.html'));

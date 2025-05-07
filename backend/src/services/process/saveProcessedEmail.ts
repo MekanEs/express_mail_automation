@@ -5,6 +5,7 @@ import { simpleParser } from 'mailparser';
 import { sanitizeOptions } from '../constants';
 import * as cheerio from 'cheerio';
 import sanitizeHtml from 'sanitize-html';
+import { logger } from '../../utils/logger';
 
 export async function SaveProcessedEmail(
     message: FetchMessageObject,
@@ -18,7 +19,7 @@ export async function SaveProcessedEmail(
     const htmlPath = path.join(dirPath, `email_${message.emailId ?? "_"}${message.uid}.html`);
 
     const parsed = await simpleParser(message.source);
-    console.log('start', parsed.subject);
+    logger.info('start', parsed.subject);
     if (!parsed.html) {
         return;
     }

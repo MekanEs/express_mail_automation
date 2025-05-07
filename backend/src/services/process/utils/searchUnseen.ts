@@ -1,18 +1,18 @@
 import { ImapFlow } from "imapflow";
 import { logger } from "../../../utils/logger";
 import { handleError } from "../../../utils/error-handler";
-
+interface searchMessagesArgs {
+    from: string;
+    client: ImapFlow;
+    inbox: string;
+    unseen?: boolean
+}
 export const searchMessages: ({
     from,
     client,
     inbox,
     unseen
-}: {
-    from: string;
-    client: ImapFlow;
-    inbox: string;
-    unseen?: boolean
-}) => Promise<number[]> = async ({ from, client, inbox, unseen = true }) => {
+}: searchMessagesArgs) => Promise<number[]> = async ({ from, client, inbox, unseen = true }) => {
     try {
         const list1 = await client.search({ from }, { uid: true });
         if (unseen) {

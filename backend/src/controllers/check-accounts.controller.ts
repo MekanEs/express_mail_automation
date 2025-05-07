@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { supabaseClient } from '../clients/supabaseClient';
-import { checkAccounts as checkAccountsService } from '../services/checkAccounts.service';
+import { checkAccounts as checkAccountsService } from '../services/check_accounts/checkAccounts.service';
 
 class CheckAccountsController {
   public async checkAccounts(_req: Request, response: Response) {

@@ -1,9 +1,11 @@
 import { ImapFlow } from 'imapflow';
-import { createImapConfig } from '../utils/createConfig';
-import { getConfig } from '../utils/getConfig';
-import { supabaseClient } from '../clients/supabaseClient';
-import { getAccessToken } from '../utils/google_refresh';
-import { accounts } from '../types/types';
+import { createImapConfig } from '../../utils/createConfig';
+import { getConfig } from '../../utils/getConfig';
+import { supabaseClient } from '../../clients/supabaseClient';
+import { getAccessToken } from './google_refresh';
+import { accounts } from '../../types/types';
+import { logger } from '../../utils/logger';
+import { createImapClient } from '../process/client/createImapClient';
 
 export async function checkAccounts({
   accounts,
@@ -14,17 +16,12 @@ export async function checkAccounts({
 }) {
   for (const account of accounts) {
     const providerConfig = getConfig(account.provider);
-    const imapConfig = createImapConfig({
-      user: account.email || '',
-      host: providerConfig.host,
-      token: account.access_token || undefined,
-      password: account.app_password || undefined
-    });
-    const client = new ImapFlow({ ...imapConfig });
+  
+    const client = createImapClient(account.email , providerConfig.host, account.app_password??undefined, account.access_token??undefined);
     try {
       await client.connect();
-      connected.push(account.email || '');
-      console.log(`аккаунт ${account.email} подключен`)
+      connected.push(account.email);
+      logger.info(`аккаунт ${account.email} подключен`)
     } catch (err) {
       if (account.provider === 'google' && account.refresh_token) {
         const new_acces_token = await getAccessToken(account.refresh_token);
@@ -36,7 +33,7 @@ export async function checkAccounts({
           .from('user_accounts')
           .update({ access_token: new_acces_token })
           .eq('id', account.id);
-        console.log(`получили новый token для  ${account.email}`)
+        logger.info(`получили новый token для  ${account.email}`)
         connected.push(account.email || '');
       } else {
         throw err;

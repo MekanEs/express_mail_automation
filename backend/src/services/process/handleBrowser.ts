@@ -1,17 +1,17 @@
 import fs from 'fs';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
 import { ProcessReport } from '../../types/reports';
 import { handleError } from '../../utils/error-handler';
 import { logger } from '../../utils/logger';
-import { Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 
-puppeteer.use(StealthPlugin());
 
-export async function handleBrowser({
+
+export async function handleBrowser({ browser,
     ProcessObject,
     openRate,
     report, }: {
+        browser: Browser,
         ProcessObject: {
             file: string;
             link: string;
@@ -21,14 +21,20 @@ export async function handleBrowser({
         report: ProcessReport,
     }) {
     let shouldOpenCount = Math.ceil((ProcessObject.length * openRate) / 100);
-    const browser = await puppeteer.launch({ headless: false });
+
     logger.debug(ProcessObject)
     try {
         for (const mail of ProcessObject) {
             const delay = Math.floor(Math.random() * 2000);
             const page = await browser.newPage();
             await openMail(page, mail, report,)
+            try {
+                await page.click('a:first')
+                await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 3000)));
 
+            } catch (err) {
+                handleError(err, 'click error')
+            }
 
 
             if (shouldOpenCount > 0) {
@@ -43,9 +49,6 @@ export async function handleBrowser({
     } catch (err) {
         handleError(err, '', 'handleBrowser');
 
-    }
-    finally {
-        if (browser) await browser.close();
     }
 }
 

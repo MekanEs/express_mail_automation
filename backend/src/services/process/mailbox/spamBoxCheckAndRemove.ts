@@ -1,19 +1,19 @@
 import { ImapFlow } from "imapflow";
-import { searchMessages } from "./utils/searchUnseen";
-import { handleError } from "../../utils/error-handler";
-import { logger } from "../../utils/logger";
-
+import { searchMessages } from "../utils/searchUnseen";
+import { handleError } from "../../../utils/error-handler";
+import { logger } from "../../../utils/logger";
+interface SpamBoxCheckAndReMoveArgs {
+    client: ImapFlow;
+    spamBoxPath: string;
+    inboxPath: string;
+    from: string;
+}
 const spamBoxCheckAndReMove = async ({
     client,
     spamBoxPath,
     inboxPath,
     from
-}: {
-    client: ImapFlow;
-    spamBoxPath: string;
-    inboxPath: string;
-    from: string;
-}) => {
+}: SpamBoxCheckAndReMoveArgs) => {
     let spamLock;
     try {
 
@@ -40,17 +40,19 @@ const spamBoxCheckAndReMove = async ({
     }
     return { spamList: [], uidMap: new Map() };
 };
+interface SpamBoxesCheckArgs {
+    client: ImapFlow;
+    spamBoxes: string[];
+    inboxPath: string;
+    from: string;
+}
+
 export const spamBoxesCheck = async ({
     client,
     spamBoxes,
     inboxPath,
     from
-}: {
-    client: ImapFlow;
-    spamBoxes: string[];
-    inboxPath: string;
-    from: string;
-}) => {
+}: SpamBoxesCheckArgs) => {
     const spamListResult = []
     const uidMaps: Map<number, number> = new Map()
     for (const spamPath of spamBoxes) {

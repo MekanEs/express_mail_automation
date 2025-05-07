@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { processMailbox } from '../services/process/process.service';
+import { processMailbox } from '../services/process/processMailbox';
 import { getConfig } from '../utils/getConfig';
 import { ProcessRequestBody } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
 import { handleError } from '../utils/error-handler';
+import { logger } from '../utils/logger';
 
 class ProcessController {
   public async processEmails(
@@ -13,7 +14,7 @@ class ProcessController {
     const { accounts, emails, limit = 100, openRate = 70, repliesCount = 0 } = req.body;
 
     const process_id = uuidv4();
-
+    res.send({ process_id, message: 'Процесс запущен' });
     for (const account of accounts) {
       const providerConfig = getConfig(account.provider);
 
@@ -40,9 +41,7 @@ class ProcessController {
         }
       }
     }
-
-    res.send({ process_id, message: 'Процесс запущен' });
-    console.log(`Завершение запроса на запуск процесса ${process_id}`);
+    logger.info(`Завершение запроса на запуск процесса ${process_id}`);
   }
 }
 export const processController = new ProcessController();

@@ -8,15 +8,15 @@ class Logger {
     }
 
     public warn(...message: unknown[]): void {
-        console.warn(...message);
+        console.log(...message);
     }
 
     public error(...message: unknown[]): void {
-        console.error(...message);
+        console.log(...message);
     }
 
     public debug(...message: unknown[]): void {
-        console.debug(...message);
+        console.log(...message);
     }
 }
 
