@@ -38,7 +38,7 @@ export class ReportService {
       report.emails.errorMessages.push(emailError);
     }
   }
-  
+
   public updateReportWithLinkStats(report: ProcessReport, attemptedOpenDelta: number = 0, targetOpenDelta: number = 0, linkError?: string): void {
     report.links.attemptedOpen += attemptedOpenDelta;
     report.links.targetOpen += targetOpenDelta;
@@ -58,10 +58,10 @@ export class ReportService {
     if (report.emails.errors === 0 && report.links.errors === 0) {
       // Можно добавить более сложную логику, например, если не найдено писем, считать это не 'success'
       if (report.emails.found > 0 && report.emails.processed === report.emails.found) {
-         report.status = 'success';
+        report.status = 'success';
       } else if (report.emails.found === 0 && report.spam.found > 0 && report.spam.moved === report.spam.found) {
-         // Если только спам был найден и перемещен, тоже можно считать успехом
-         report.status = 'success';
+        // Если только спам был найден и перемещен, тоже можно считать успехом
+        report.status = 'success';
       } else if (report.emails.found === 0 && report.spam.found === 0) {
         // Если ничего не найдено, это не ошибка, но и не полный успех в контексте обработки
         report.status = 'success'; // или другой статус, например, 'no_action'
@@ -95,7 +95,7 @@ export class ReportService {
       inbox: inboxPaths,
       // created_at будет установлен базой данных
     };
-    
+
     try {
       const { error } = await supabaseClient.from('reports').insert(reportDataToInsert);
       if (error) {

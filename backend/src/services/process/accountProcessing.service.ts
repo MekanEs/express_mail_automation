@@ -11,7 +11,6 @@ import { reportService } from './utils/report.service';
 import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
 import { fileSystemService } from './utils/fileSystem.service';
 import path from 'path';
-import fs from 'fs';
 
 export interface AccountProcessingParams {
   account: AccountType;
@@ -110,9 +109,9 @@ export class AccountProcessingService {
               reportService.updateReportWithEmailStats(report, 0, 0, `Failed to fetch message UID ${uid}`);
               continue;
             }
-            fs.writeFileSync('message.json', JSON.stringify(message, (key, value) => typeof value === "bigint" ? Number(value) : value,
-              2));
-            logger.info(message.headers)
+            // logger.info(message.envelope)
+            // fs.writeFileSync('message.json', JSON.stringify(await simpleParser(message.source), (key, value) => typeof value === "bigint" ? Number(value) : value,
+            //   2));
             const savedEmailInfo = await emailContentService.saveEmailForBrowser(message, tempDirPath);
             if (savedEmailInfo.filePath) {
               browserTasks.push({
@@ -159,6 +158,7 @@ export class AccountProcessingService {
           if (messagesToMarkAsSeen.length > 0) {
             logger.info(`[AccountProcessing] Пометка ${messagesToMarkAsSeen.length} писем как прочитанных в ${mailboxPath}`);
             await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
+            reportService.updateReportWithEmailStats(report, 0, messagesToMarkAsSeen.length,);
           }
 
         } catch (mailboxErr) {
@@ -180,7 +180,7 @@ export class AccountProcessingService {
       await imapClientService.disconnectClient(client, userEmail);
       logger.info(`[AccountProcessing] Завершена IMAP/SMTP обработка для: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
     }
-    
+
     return browserTasks; // Возвращаем задачи для браузера
   }
 }

@@ -66,9 +66,10 @@ export class BrowserInteractionService {
         timeout: 20000,
       });
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Прокрутка
-      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
+
 
       reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
       logger.info(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
 
 
@@ -120,7 +121,7 @@ export class BrowserInteractionService {
       logger.info('[Browser Service] Нет задач для обработки в браузере.');
       return;
     }
-    
+
     if (!browser) {
       logger.error('[Browser Service] Экземпляр браузера не передан, обработка задач прервана.');
       tasks.forEach(task => {

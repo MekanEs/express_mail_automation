@@ -42,7 +42,7 @@ export class ProcessOrchestrationService {
     const allBrowserTasks: BrowserTask[] = []; // Собираем все задачи для браузера
     const tempDirectories: string[] = []; // Для отслеживания директорий, которые нужно очистить
     const browserProcessingReport = reportService.initializeReport(process_id, 'aggregate_browser', 'N/A');
-    
+
     let browser: Browser | null = null; // Объявляем браузер здесь
 
     try {
@@ -67,7 +67,7 @@ export class ProcessOrchestrationService {
           logger.info(`[Orchestration ID: ${process_id}] Подготовка к обработке для аккаунта ${account.email} от ${fromEmail}.`);
 
           // Создаем путь для временных файлов этого аккаунта
-          const projectRoot = path.resolve(__dirname, '..',);
+          const projectRoot = path.resolve(__dirname, '..', '..', '..');
           const uniqueSubfolder = `${process_id}_${account.email.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
           const tempDirPath = path.join(projectRoot, baseOutputPath, uniqueSubfolder);
           tempDirectories.push(tempDirPath);
@@ -93,6 +93,7 @@ export class ProcessOrchestrationService {
             handleError(accountProcessingError, `[Orchestration ID: ${process_id}] Ошибка при обработке ${account.email} от ${fromEmail}:`);
           }
         }
+        await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 5000)));
       }
 
       // Обработка всех собранных задач в браузере ПОСЛЕ всех циклов
@@ -110,13 +111,13 @@ export class ProcessOrchestrationService {
       if (browser) {
         await browserInteractionService.closeBrowser(browser);
       }
-      
+
       // Очищаем все временные директории
       for (const dirPath of tempDirectories) {
         try {
           await fileSystemService.cleanupDirectory(dirPath);
           logger.info(`[Orchestration ID: ${process_id}] Очищена временная директория ${dirPath}.`);
-          
+
           // Пытаемся удалить пустую директорию
           try {
             await fs.promises.rmdir(dirPath);
@@ -128,7 +129,7 @@ export class ProcessOrchestrationService {
           handleError(cleanupErr, `[Orchestration ID: ${process_id}] Ошибка при очистке директории ${dirPath}`);
         }
       }
-      
+
       logger.info(`[Orchestration ID: ${process_id}] Завершение всего процесса обработки почты.`);
     }
   }
