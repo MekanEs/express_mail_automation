@@ -1,7 +1,6 @@
 import { account as AccountType, ProviderConfig } from '../../types/types'; // Убрал Provider, т.к. он есть в AccountType
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
-import fs from 'fs';
 import { imapClientService } from './client/imapClient.service';
 import { spamHandlingService } from './mailbox/spamHandling.service';
 import { searchMessagesService } from './email/searchMessages.service';
@@ -12,7 +11,9 @@ import { browserInteractionService } from './browser/browserInteraction.service'
 import { reportService } from './utils/report.service';
 import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
 import { fileSystemService } from './utils/fileSystem.service';
-
+// src/services/process/accountProcessing.service.ts
+import path from 'path'; // Убедись, что path импортирован
+import fs from 'fs';
 export interface AccountProcessingParams {
   account: AccountType;
   fromEmail: string;
@@ -64,8 +65,10 @@ export class AccountProcessingService {
     }
 
     const report = reportService.initializeReport(process_id, userEmail, fromEmail);
-
-    const tempDirPath = baseOutputPath;
+    const projectRoot = path.resolve(__dirname, '..',);
+    // Создаем ПОЛНЫЙ путь к папке для временных файлов этого запуска
+    const uniqueSubfolder = `${process_id}_${userEmail.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
+    const tempDirPath = path.join(projectRoot, baseOutputPath, uniqueSubfolder);
     fileSystemService.createDirectoryIfNotExists(tempDirPath);
 
     let remainingReplies = repliesToAttempt;
@@ -186,6 +189,12 @@ export class AccountProcessingService {
       await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       await imapClientService.disconnectClient(client, userEmail);
       await fileSystemService.cleanupDirectory(tempDirPath);
+      try {
+        await fs.promises.rmdir(tempDirPath); // rmdir удаляет пустую папку
+        logger.info(`[AccountProcessing] Временная директория ${tempDirPath} удалена.`);
+      } catch (rmErr) {
+        handleError(rmErr, `[AccountProcessing] Не удалось удалить временную директорию ${tempDirPath}`);
+      }
       logger.info(`[AccountProcessing] Завершена обработка для аккаунта: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
     }
   }

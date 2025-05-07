@@ -71,17 +71,7 @@ export class BrowserInteractionService {
       reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
       logger.info(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
 
-      // Попытка клика по первой ссылке, если она есть (необязательно)
-      // Это может быть частью открытия письма или отдельным шагом
-      try {
-        const firstLink = await page.$('a');
-        if (firstLink) {
-          // await firstLink.click(); // Это может вызвать навигацию, которую мы не всегда хотим здесь
-          logger.debug(`[Browser Service] Первая ссылка найдена в ${task.filePath}, но не кликнута на этом этапе.`);
-        }
-      } catch (clickErr) {
-        logger.warn(`[Browser Service] Не удалось найти/кликнуть первую ссылку в ${task.filePath}: ${clickErr}`);
-      }
+
 
     } catch (err) {
       const errorMessage = `Ошибка при открытии локального файла ${task.filePath} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
