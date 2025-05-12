@@ -1,7 +1,7 @@
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 import * as nodemailer from 'nodemailer';
 import MailComposer from 'nodemailer/lib/mail-composer';
-import { simpleParser, ParsedMail } from 'mailparser';
+import { simpleParser, } from 'mailparser';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { AuthenticationType } from 'nodemailer/lib/smtp-connection';
 import { logger } from '../../../utils/logger';
@@ -47,7 +47,7 @@ export class ReplyService {
       toAddress = originalMessage.envelope.from[0].address;
 
       const replyTextSnippet = warmupReplies[Math.floor(Math.random() * warmupReplies.length)];
-      
+
       const parsedOriginal = await simpleParser(originalMessage.source || Buffer.from(''));
       const originalHtml = parsedOriginal.html || '<p>Original message not available in HTML format.</p>';
       const originalText = parsedOriginal.text || 'Original message not available in text format.';
@@ -78,7 +78,11 @@ export class ReplyService {
 
       const mimeBuffer = await new Promise<Buffer>((resolve, reject) => {
         mail.compile().build((err, builtMessage) => {
-          err ? reject(err) : resolve(builtMessage);
+          if (err) {
+            reject(err)
+          } else {
+            resolve(builtMessage);
+          }
         });
       });
 
@@ -120,7 +124,7 @@ export class ReplyService {
         // logger: true, // Включить для детального логгирования SMTP команд
         // debug: true,
       };
-      
+
       let transporter = nodemailer.createTransport(transportConfig);
 
       try {
@@ -132,19 +136,19 @@ export class ReplyService {
         transportConfig.secure = true;
         transporter = nodemailer.createTransport(transportConfig);
         try {
-            await transporter.verify();
-            logger.info(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`);
+          await transporter.verify();
+          logger.info(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`);
         } catch (sslErr) {
-            logger.warn(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${sslErr instanceof Error ? sslErr.message : sslErr}. Пробуем порт 25 (без шифрования)...`);
-            transportConfig.port = 25; // Basic, no encryption
-            transportConfig.secure = false;
-            // transportConfig.requireTLS = false; // Явно указать, что TLS не обязателен
-            // delete transportConfig.tls; // Удалить конфигурацию TLS
-            transporter = nodemailer.createTransport(transportConfig);
-            // Для порта 25 verify может не работать или быть нежелательным, сразу пробуем отправить
+          logger.warn(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${sslErr instanceof Error ? sslErr.message : sslErr}. Пробуем порт 25 (без шифрования)...`);
+          transportConfig.port = 25; // Basic, no encryption
+          transportConfig.secure = false;
+          // transportConfig.requireTLS = false; // Явно указать, что TLS не обязателен
+          // delete transportConfig.tls; // Удалить конфигурацию TLS
+          transporter = nodemailer.createTransport(transportConfig);
+          // Для порта 25 verify может не работать или быть нежелательным, сразу пробуем отправить
         }
       }
-      
+
       const info = await transporter.sendMail({
         from: emailContent.from,
         to: emailContent.to,
@@ -180,8 +184,8 @@ export class ReplyService {
     }
 
     if (!mailboxPath) {
-        logger.warn(`[Reply Service] Не указан путь к ящику для сохранения письма (appendEmailToMailbox).`);
-        return false;
+      logger.warn(`[Reply Service] Не указан путь к ящику для сохранения письма (appendEmailToMailbox).`);
+      return false;
     }
 
     try {

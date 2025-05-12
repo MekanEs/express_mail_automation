@@ -20,11 +20,14 @@ export async function checkAccounts({
     const client = createImapClient(account.email, providerConfig.host, account.app_password ?? undefined, account.access_token ?? undefined);
     try {
       await client.connect();
+      logger.info(`аккаунт ${account.email} подключается`)
       connected.push(account.email);
       logger.info(`аккаунт ${account.email} подключен`)
     } catch (err) {
+      logger.info('connection error')
       if ((account.provider === 'google' || account.provider === 'mailru') && account.refresh_token) {
-        const new_acces_token = await getAccessToken(account.refresh_token);
+        logger.info(`обновляем токен для ${account.email}`)
+        const new_acces_token = await getAccessToken(account.refresh_token, account.provider);
         if (!new_acces_token) {
           return;
         }

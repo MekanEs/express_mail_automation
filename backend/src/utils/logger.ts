@@ -21,7 +21,7 @@ class Logger {
             timestamp: new Date().toISOString(),
         };
         loggerEvents.emit('log', payload); // Генерируем событие 'log'
-        console[level](...message); // Оставляем вывод в консоль
+        console.log(...message); // Оставляем вывод в консоль
     }
 
     public info(...message: unknown[]): void {

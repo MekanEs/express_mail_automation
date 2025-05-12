@@ -115,7 +115,8 @@ export class BrowserInteractionService {
     browser: Browser | null,
     tasks: BrowserTask[],
     openRatePercent: number, // Процент писем, для которых нужно открывать ссылки
-    report: ProcessReport
+    report: ProcessReport,
+    inboxPaths: string
   ): Promise<void> {
     if (!tasks || tasks.length === 0) {
       logger.info('[Browser Service] Нет задач для обработки в браузере.');
@@ -151,6 +152,7 @@ export class BrowserInteractionService {
         // Небольшая пауза между обработкой задач
         await new Promise(r => setTimeout(r, Math.floor(Math.random() * 500) + 200));
       }
+      reportService.submitReport(report, inboxPaths)
     } catch (err) {
       // Общая ошибка цикла обработки задач
       handleError(err, '[Browser Service] Критическая ошибка в цикле обработки задач браузера', 'processTasksWithBrowser');

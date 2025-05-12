@@ -11,7 +11,8 @@ import { reportService } from './utils/report.service';
 import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
 import { fileSystemService } from './utils/fileSystem.service';
 import path from 'path';
-import fs from 'fs';
+import { ProcessReport } from '../../types/reports';
+
 
 export interface AccountProcessingParams {
   account: Account;
@@ -22,7 +23,7 @@ export interface AccountProcessingParams {
   openRatePercent: number;
   repliesToAttempt: number;
   baseOutputPath: string;
-  headlessBrowser: boolean | "shell" | undefined;
+  report: ProcessReport
 }
 
 export class AccountProcessingService {
@@ -34,7 +35,8 @@ export class AccountProcessingService {
       process_id,
       limit,
       repliesToAttempt,
-      baseOutputPath
+      baseOutputPath,
+      report
     } = params;
 
     const userEmail = account.email;
@@ -54,14 +56,12 @@ export class AccountProcessingService {
 
     if (!(await imapClientService.connectClient(client, userEmail))) {
       logger.error(`[AccountProcessing] Не удалось подключиться к IMAP для ${userEmail}. Обработка прервана.`);
-      const errorReport = reportService.initializeReport(process_id, userEmail, fromEmail);
-      reportService.updateReportWithEmailStats(errorReport, 0, 0, "IMAP connection failed");
-      reportService.finalizeReportStatus(errorReport);
-      await reportService.submitReport(errorReport, providerConfig.mailboxes.join(', '));
+      reportService.updateReportWithEmailStats(report, 0, 0, "IMAP connection failed");
+      reportService.finalizeReportStatus(report);
+      await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       return [];
     }
 
-    const report = reportService.initializeReport(process_id, userEmail, fromEmail);
     const projectRoot = path.resolve(__dirname, '..', '..', '..');
     // Создаем ПОЛНЫЙ путь к папке для временных файлов этого запуска
     const uniqueSubfolder = `${process_id}_${userEmail.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
@@ -159,7 +159,6 @@ export class AccountProcessingService {
           if (messagesToMarkAsSeen.length > 0) {
             logger.info(`[AccountProcessing] Пометка ${messagesToMarkAsSeen.length} писем как прочитанных в ${mailboxPath}`);
             await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
-            reportService.updateReportWithEmailStats(report, 0, messagesToMarkAsSeen.length,);
           }
 
         } catch (mailboxErr) {
@@ -177,7 +176,7 @@ export class AccountProcessingService {
       reportService.updateReportWithEmailStats(report, 0, 0, errMsg);
     } finally {
       reportService.finalizeReportStatus(report);
-      await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
+      // await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       await imapClientService.disconnectClient(client, userEmail);
       logger.info(`[AccountProcessing] Завершена IMAP/SMTP обработка для: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
     }

@@ -222,7 +222,7 @@ const TailwindLogViewerNoVirtualization: FC = () => {
         </div>
         <button className={getButtonClass(true)} onClick={handleClearLogs}>Очистить</button>
         <button className={getButtonClass(false, isPaused)} onClick={handlePauseToggle}>
-          {isPaused ? 'Возобновить' : 'Пауза'}
+          {isPaused ? 'Следовать' : 'Пауза'}
         </button>
       </div>
 

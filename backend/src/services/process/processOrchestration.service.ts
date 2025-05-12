@@ -36,9 +36,9 @@ export class ProcessOrchestrationService {
     logger.info(`[Orchestration ID: ${process_id}] Запущен глобальный процесс обработки почты.`);
     logger.debug(`[Orchestration ID: ${process_id}] Параметры:`, { accountsCount: accounts.length, emailsCount: emails.length, limit, openRate, repliesCount });
 
-    const allBrowserTasks: BrowserTask[] = []; // Собираем все задачи для браузера
+
     const tempDirectories: string[] = []; // Для отслеживания директорий, которые нужно очистить
-    const browserProcessingReport = reportService.initializeReport(process_id, 'aggregate_browser', 'N/A');
+
 
     let browser: Browser | null = null; // Объявляем браузер здесь
 
@@ -50,15 +50,18 @@ export class ProcessOrchestrationService {
       }
 
       for (const account of accounts) {
-        if (!account.email) {
-          logger.warn(`[Orchestration ID: ${process_id}] Пропуск аккаунта без email: ID ${account.id}`);
-          continue;
-        }
         const providerConfig = getConfig(account.provider);
         if (!providerConfig) {
           logger.error(`[Orchestration ID: ${process_id}] Не найдена конфигурация для провайдера ${account.provider} аккаунта ${account.email}. Пропуск.`);
           continue;
         }
+        const report = reportService.initializeReport(process_id, account.email, emails.join(' ,'));
+        const allBrowserTasks: BrowserTask[] = []; // Собираем все задачи для браузера
+        if (!account.email) {
+          logger.warn(`[Orchestration ID: ${process_id}] Пропуск аккаунта без email: ID ${account.id}`);
+          continue;
+        }
+
 
         for (const fromEmail of emails) {
           logger.info(`[Orchestration ID: ${process_id}] Подготовка к обработке для аккаунта ${account.email} от ${fromEmail}.`);
@@ -78,7 +81,7 @@ export class ProcessOrchestrationService {
             openRatePercent: openRate,
             repliesToAttempt: repliesCount,
             baseOutputPath,
-            headlessBrowser
+            report
           };
 
           try {
@@ -90,21 +93,20 @@ export class ProcessOrchestrationService {
             handleError(accountProcessingError, `[Orchestration ID: ${process_id}] Ошибка при обработке ${account.email} от ${fromEmail}:`);
           }
         }
-        await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 5000)));
+        if (allBrowserTasks.length > 0 && browser) {
+          logger.info(`[Orchestration ID: ${process_id}] Запуск обработки ${allBrowserTasks.length} задач в браузере.`);
+          await browserInteractionService.processTasksWithBrowser(browser, allBrowserTasks, openRate, report, providerConfig.mailboxes.join(', '));
+          logger.info(`[Orchestration ID: ${process_id}] Завершена обработка ${allBrowserTasks.length} задач в браузере.`);
+        } else {
+          logger.info(`[Orchestration ID: ${process_id}] Нет задач для обработки в браузере или браузер недоступен.`);
+        }
+        await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 2000)));
       }
 
-      // Обработка всех собранных задач в браузере ПОСЛЕ всех циклов
-      if (allBrowserTasks.length > 0 && browser) {
-        logger.info(`[Orchestration ID: ${process_id}] Запуск обработки ${allBrowserTasks.length} задач в браузере.`);
-        await browserInteractionService.processTasksWithBrowser(browser, allBrowserTasks, openRate, browserProcessingReport);
-        logger.info(`[Orchestration ID: ${process_id}] Завершена обработка ${allBrowserTasks.length} задач в браузере.`);
-      } else {
-        logger.info(`[Orchestration ID: ${process_id}] Нет задач для обработки в браузере или браузер недоступен.`);
-      }
+
     } catch (orchestrationErr) {
       handleError(orchestrationErr, `[Orchestration ID: ${process_id}] Критическая ошибка в оркестрации:`);
     } finally {
-      // Закрываем браузер в любом случае
       if (browser) {
         await browserInteractionService.closeBrowser(browser);
       }
