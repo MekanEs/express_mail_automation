@@ -64,7 +64,6 @@ export class ProcessOrchestrationService {
 
 
         for (const fromEmail of emails) {
-          logger.info(`[Orchestration ID: ${process_id}] Подготовка к обработке для аккаунта ${account.email} от ${fromEmail}.`);
 
           // Создаем путь для временных файлов этого аккаунта
           const projectRoot = path.resolve(__dirname, '..', '..', '..');
@@ -88,7 +87,7 @@ export class ProcessOrchestrationService {
             // Используем await для последовательной обработки аккаунтов/писем
             const tasksFromAccount = await accountProcessingService.processAccountFromSender(accountProcessingParams);
             allBrowserTasks.push(...tasksFromAccount); // Добавляем задачи в общий список
-            logger.info(`[Orchestration ID: ${process_id}] Получено ${tasksFromAccount.length} браузерных задач от аккаунта ${account.email}.`);
+
           } catch (accountProcessingError) {
             handleError(accountProcessingError, `[Orchestration ID: ${process_id}] Ошибка при обработке ${account.email} от ${fromEmail}:`);
           }

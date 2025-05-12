@@ -20,7 +20,6 @@ export async function checkAccounts({
     const client = createImapClient(account.email, providerConfig.host, account.app_password ?? undefined, account.access_token ?? undefined);
     try {
       await client.connect();
-      logger.info(`аккаунт ${account.email} подключается`)
       connected.push(account.email);
       logger.info(`аккаунт ${account.email} подключен`)
     } catch (err) {

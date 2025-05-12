@@ -128,7 +128,6 @@ export class AccountProcessingService {
             messagesToMarkAsSeen.push(uid);
 
             if (remainingReplies > 0) {
-              logger.info(`[AccountProcessing] Попытка ответа на письмо UID ${uid} (осталось попыток: ${remainingReplies})`);
               const preparedReply = await replyService.prepareReply(message, userEmail);
               if (preparedReply.mimeBuffer && preparedReply.emailContent) {
                 const smtpSent = await replyService.sendSmtpEmail(
@@ -178,7 +177,7 @@ export class AccountProcessingService {
       reportService.finalizeReportStatus(report);
       // await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       await imapClientService.disconnectClient(client, userEmail);
-      logger.info(`[AccountProcessing] Завершена IMAP/SMTP обработка для: ${userEmail}, отправитель: ${fromEmail}, process_id: ${process_id}`);
+      logger.info(`[AccountProcessing] Завершена IMAP/SMTP обработка для: ${userEmail}, отправитель: ${fromEmail}`);
     }
 
     return browserTasks; // Возвращаем задачи для браузера

@@ -59,7 +59,6 @@ export class BrowserInteractionService {
   }
 
   private async openLocalEmailPage(page: Page, task: BrowserTask, report: ProcessReport): Promise<void> {
-    logger.info(`[Browser Service] Открытие локального файла письма: ${task.filePath} (UID: ${task.uid})`);
     try {
       await page.goto(`file://${task.filePath}`, { // Важно: file:// для локальных файлов
         waitUntil: 'networkidle2',
