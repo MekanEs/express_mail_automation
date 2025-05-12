@@ -4,7 +4,6 @@ import { useStartProcess } from '../../hooks/useProcessMutations';
 import toast from 'react-hot-toast';
 
 import { ProcessFormInput } from './processFormInput';
-// import { useSendMessage } from '../../api/senMessage';
 
 interface ProcessFormProps {
     selectedAccounts: SelectableAccount[];
@@ -25,14 +24,12 @@ export const ProcessForm: FC<ProcessFormProps> = ({
     // const sendMessage = useSendMessage();
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        // --- Валидация ---
+
         if (selectedAccounts.length === 0) {
             toast.error('Please select at least one account.');
             return;
         }
-        // TODO: Добавить другую необходимую валидацию (например, для фильтров)
 
-        // --- Сборка данных ---
         const processData: ProcessRequestBody = {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             accounts: selectedAccounts.map(({ is_selected, ...rest }) => rest),
@@ -45,14 +42,11 @@ export const ProcessForm: FC<ProcessFormProps> = ({
         console.log('Submitting process data:', processData);
         startProcessMutation.mutate(processData);
     };
-    // const handleSendMessage = () => {
-    //     sendMessage.mutate();
-    // };
+
     return (
         <>
 
-            {/* <button className="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm
-             font-medium text-white bg-indigo-600 hover:bg-indigo-700" onClick={handleSendMessage}>Send Message</button> */}
+
             <div className='w-full bg-gray-200 p-2 mt-4'>
                 <form
                     onSubmit={handleSubmit}
@@ -74,9 +68,9 @@ export const ProcessForm: FC<ProcessFormProps> = ({
                     </div>
                     <div className="flex flex-col gap-2  border p-2">
                         <label className="text-sm text-gray-600">
-                            Open Rate
+                            Link open Rate
                             <p className="text-xs text-gray-400">
-                                процент обработанных писем которые будут открыты
+                                процент обработанных писем ссылки в которых будут открыты
                             </p>
                         </label>
                         <ProcessFormInput value={openRate} setValue={setOpenRate} points={[0, 50, 100]} />

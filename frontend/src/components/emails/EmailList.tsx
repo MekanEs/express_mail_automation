@@ -56,8 +56,7 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
     const handleDeleteEmail = (id: number) => {
         deleteEmailMutation.mutate(id);
     };
-    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const { value, checked } = event.target; // value будет email
+    const handleCheckboxChange = (value: string, checked: boolean) => {
         const senderEmail = value;
 
         let updatedSelection: SelectableEmail[];
@@ -71,11 +70,13 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
                 updatedSelection = [...selected]; // На всякий случай, если не нашли
             }
         } else {
+
             // Удаляем отправителя из выбранных
             updatedSelection = selected.filter(sender => sender.email !== senderEmail);
         }
         toggleSelection(updatedSelection);
-    }; const selectedEmailsSet = new Set(selected.map(s => s.email));
+    };
+    const selectedEmailsSet = new Set(selected.map(s => s.email));
     return (
         <div className="card-content mt-4">
             <div className="card-header mb-4">
@@ -109,7 +110,9 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
             ) : (
                 <ul className="flex flex-wrap gap-2 *:bg-gray-100">
                     {emails.map((email) => (
-                        <li key={email.id} className="email-list-item flex justify-between items-center mt-2 mb-2 grow-1 w-100 rounded p-2">
+                        <li onClick={() => {
+                            handleCheckboxChange(email.email || '', !selected.some((a) => a.id === email.id))
+                        }} key={email.id} className="email-list-item flex justify-between items-center mt-2 mb-2 grow-1 w-100 rounded p-2">
                             <span className="text-text-primary">{email.email}</span>
                             <div className="item-actions flex gap-2 items-center">
                                 <input
@@ -118,7 +121,9 @@ export const EmailList = ({ emails, toggleSelection, selected }: EmailListProps)
                                     type="checkbox"
                                     value={email.email || ''}
                                     checked={selectedEmailsSet.has(email.email)}
-                                    onChange={handleCheckboxChange}
+                                    onChange={(e) => {
+                                        handleCheckboxChange(email.email || '', e.target.checked)
+                                    }}
                                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                 />
                                 <button
