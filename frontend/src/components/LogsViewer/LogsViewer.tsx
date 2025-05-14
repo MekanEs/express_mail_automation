@@ -70,7 +70,7 @@ const TailwindLogViewerNoVirtualization: FC = () => {
         ) || log.level.toLowerCase().includes(lowerSearchTerm)
       );
     }
-    setFilteredLogs(tempFilteredLogs);
+    setFilteredLogs(tempFilteredLogs.slice(-500));
   }, [allLogs, searchTerm, selectedLevels]);
 
   // 3. Авто-скролл к последнему логу

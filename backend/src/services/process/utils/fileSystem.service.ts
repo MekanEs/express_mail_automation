@@ -16,13 +16,13 @@ export class FileSystemService {
       }
     }
     logger.debug(`[FS Service] Директория уже существует: ${dirPath}`);
-    return true; // Директория уже существует
+    return true;
   }
 
   public deleteFile(filePath: string): boolean {
     try {
       if (fs.existsSync(filePath)) {
-        // fs.unlinkSync(filePath);
+        fs.unlinkSync(filePath);
         logger.info(`[FS Service] Файл удален: ${filePath}`);
         return true;
       }
@@ -68,6 +68,20 @@ export class FileSystemService {
       handleError(err, `[FS Service] Ошибка при чтении директории ${dirPath} для очистки`, 'cleanupDirectory.readdir');
     }
   }
+  public async cleanUpTempDirectory(tempDirectories: string[], process_id: string): Promise<void> {
+    for (const dirPath of tempDirectories) {
+      try {
+        await this.cleanupDirectory(dirPath);
+        try {
+          await fs.promises.rmdir(dirPath);
+          logger.info(`[Orchestration ID: ${process_id}] Удалена пустая директория ${dirPath}.`);
+        } catch (rmdirErr) {
+          handleError(rmdirErr, `[Orchestration ID: ${process_id}] Не удалось удалить директорию ${dirPath}`);
+        }
+      } catch (cleanupErr) {
+        handleError(cleanupErr, `[Orchestration ID: ${process_id}] Ошибка при очистке директории ${dirPath}`);
+      }
+    }
+  }
 }
-
 export const fileSystemService = new FileSystemService();

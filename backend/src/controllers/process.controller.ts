@@ -1,5 +1,5 @@
 import { Request, Response, } from 'express';
-import { ProcessRequestBody } from '../types/types';
+import { ProcessRequestBody, StartProcessingParams } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 import { processOrchestrationService } from '../services/process/processOrchestration.service';
@@ -18,22 +18,19 @@ class ProcessController {
 
     const process_id = uuidv4();
 
-    // Отправляем клиенту немедленный ответ
     res.status(202).send({
       process_id,
       message: 'Запрос на обработку почты принят и выполняется в фоновом режиме.'
     });
 
-    // Параметры для фоновой задачи
-    const orchestrationParams = {
+    const orchestrationParams: StartProcessingParams = {
       accounts,
       emails,
       limit,
       openRate,
       repliesCount,
       process_id,
-      baseOutputPath: 'files', // Можно вынести в .env или конфигурацию приложения
-      headlessBrowser: false      // headlessBrowser: "shell" // Или всегда headless
+      baseOutputPath: 'files',
     };
 
     // Запускаем длительную обработку асинхронно

@@ -1,7 +1,7 @@
 import { Database } from '../clients/database.types';
 type Tables = Database['public']['Tables'];
 
-export type Account = Tables['user_accounts']['Row']; 
+export type Account = Tables['user_accounts']['Row'];
 export type Accounts = Account[];
 export type FromEmail = Tables['from_emails']['Row'];
 export type ReportType = Tables['reports']['Row'];
@@ -25,7 +25,10 @@ export interface ProcessRequestBody {
   openRate?: number;
   repliesCount?: number;
 }
-
+export interface StartProcessingParams extends ProcessRequestBody {
+  process_id: string;
+  baseOutputPath: string;
+}
 // Тип для метрик дашборда
 export interface DashboardMetrics {
   summary: {

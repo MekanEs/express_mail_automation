@@ -37,17 +37,17 @@ export type Database = {
       from_emails: {
         Row: {
           created_at: string
-          email: string | null
+          email: string
           id: number
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          email: string
           id?: number
         }
         Update: {
           created_at?: string
-          email?: string | null
+          email?: string
           id?: number
         }
         Relationships: []
@@ -151,6 +151,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sender_aggregates_archive: {
+        Row: {
+          sender: string
+          spam_moved: number
+          total_emails_processed: number
+          total_links_attempted_open: number
+          total_links_opened: number
+          total_replies_sent: number
+          total_reports: number
+          total_spam_found: number
+        }
+        Insert: {
+          sender: string
+          spam_moved?: number
+          total_emails_processed?: number
+          total_links_attempted_open?: number
+          total_links_opened?: number
+          total_replies_sent?: number
+          total_reports?: number
+          total_spam_found?: number
+        }
+        Update: {
+          sender?: string
+          spam_moved?: number
+          total_emails_processed?: number
+          total_links_attempted_open?: number
+          total_links_opened?: number
+          total_replies_sent?: number
+          total_reports?: number
+          total_spam_found?: number
+        }
+        Relationships: []
+      }
       user_accounts: {
         Row: {
           access_token: string | null
@@ -162,7 +195,7 @@ export type Database = {
           is_token: boolean
           provider: Database["public"]["Enums"]["Provider"]
           refresh_token: string | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -175,7 +208,7 @@ export type Database = {
           is_token?: boolean
           provider?: Database["public"]["Enums"]["Provider"]
           refresh_token?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -188,7 +221,7 @@ export type Database = {
           is_token?: boolean
           provider?: Database["public"]["Enums"]["Provider"]
           refresh_token?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

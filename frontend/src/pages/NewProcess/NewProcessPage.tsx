@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ProcessForm } from '../../components/process/ProcessForm';
 import { SelectableAccount, SelectableEmail } from '../../types/types';
-import { useAccounts } from '../../hooks/useAccountQueries'; // Импорт хука для получения аккаунтов
+import { useAccounts } from '../../hooks/useAccountQueries';
 import { useSenders } from '../../hooks/useSenderQueries';
 import Accounts from '../../components/accounts/Accounts';
 import { EmailList } from '../../components/emails/EmailList';
@@ -49,7 +49,7 @@ export const NewProcessPage: React.FC = () => {
     }, [availableSenders]);
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="mx-auto p-8">
             {(isLoadingAccounts || isLoadingSenders) && (
                 <div className="text-center p-4">Loading available accounts and senders...</div>
             )}

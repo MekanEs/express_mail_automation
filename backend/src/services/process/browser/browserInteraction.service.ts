@@ -16,7 +16,7 @@ export interface BrowserTask {
 }
 
 export class BrowserInteractionService {
-  public async launchBrowser(headless: boolean | "shell" | undefined): Promise<Browser | null> {
+  public async launchBrowser(headless: boolean | "shell" | undefined = false): Promise<Browser | null> {
     // headless: "new" - рекомендуемый современный режим
     // headless: true - старый headless
     // headless: false - для отладки
@@ -25,11 +25,10 @@ export class BrowserInteractionService {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Часто нужно в Docker/CI
+        '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        // '--single-process', // Спорно, может помочь с памятью, но снизить стабильность
         '--disable-gpu'
       ]
     };
@@ -106,10 +105,7 @@ export class BrowserInteractionService {
     }
   }
 
-  /**
-   * Обрабатывает список задач (открытие писем и ссылок) в браузере.
-   * Принимает экземпляр браузера как аргумент, не управляет его жизненным циклом.
-   */
+
   public async processTasksWithBrowser(
     browser: Browser | null,
     tasks: BrowserTask[],

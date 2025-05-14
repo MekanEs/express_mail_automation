@@ -6,7 +6,7 @@ export type accounts = account[];
 export type from_email = Tables['from_emails']['Row'];
 
 export type report = Tables['reports']['Row'];
-export type Provider = Database['public']['Enums']['Provider'];
+export type Provider = Database["public"]["Enums"]["Provider"]
 export type ProviderConfig = {
     host: string;
     mailboxes: string[];

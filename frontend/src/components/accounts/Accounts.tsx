@@ -1,6 +1,6 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { account, SelectableAccount } from '../../types/types';
+import { account, Provider, SelectableAccount } from '../../types/types';
 import { checkAccounts, getAccounts } from '../../api/accountsApi';
 import { useAccountStatusCache } from '../../hooks/useAccountStatusCache';
 import toast from 'react-hot-toast';
@@ -14,13 +14,21 @@ interface AccountsProps {
 const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
     const { checked, saveChecked } = useAccountStatusCache();
     const queryClient = useQueryClient();
-
+    const [accountsSortedByProvider, setAccountsSortedByProvider] = useState<Record<Provider, SelectableAccount[]> | null>(null);
     const { data: accounts = [], isFetching } = useQuery<SelectableAccount[]>({
         queryKey: ['accounts'],
         queryFn: getAccounts
     });
     useEffect(() => {
-        console.log(accounts);
+        setAccountsSortedByProvider(accounts.reduce((accumulator, account) => {
+            const provider = account.provider as Provider;
+            if (accumulator[provider]) {
+                accumulator[provider].push(account);
+            } else {
+                accumulator[provider] = [account];
+            }
+            return accumulator
+        }, {} as Record<Provider, SelectableAccount[]>))
     }, [accounts]);
     const checkAccountsMutation = useMutation({
         mutationFn: (accountsToCheck: account[]) => checkAccounts(accountsToCheck),
@@ -104,55 +112,87 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
                     <p>No accounts found</p>
                 </div>
             ) : (
-                <ul className="rounded bg-gray-200 mt-6 flex flex-wrap p-2 gap-1">
-                    {accounts
-                        .sort((a, b) => ('' + a.provider)?.localeCompare(b.provider + ''))
-                        .map((account) => (
-                            <li
-                                onClick={() => {
-                                    handleToggleAccount(
-                                        account,
-                                        !selected.some((a) => a.id === account.id)
-                                    );
-                                }}
-                                key={account.id}
-                                className="px-4 py-2 w-100 flex grow items-center justify-between rounded bg-gray-100 hover:bg-white"
-                            >
-                                <div className="text-text-primary">{account.email}</div>
-                                <div className="item-actions">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="flex items-center">
-                                            <input
-                                                id={`select-${account.id}`}
-                                                type="checkbox"
-                                                checked={selected.some((a) => a.id === account.id)}
-                                                onChange={(e) =>
-                                                    handleToggleAccount(account, e.target.checked)
+                <>
+                    <h3 className="text-text-secondary text-lg mt-4 ">Кол-во аккаунтов: {accounts.length}</h3>
+                    <ul className="rounded bg-gray-200 mt-2 flex flex-wrap p-2 gap-2">
+                        {accountsSortedByProvider && Object.keys(accountsSortedByProvider).map(provider => {
+                            return (
+                                <div className="flex flex-col gap-1 p-2 rounded bg-gray-300" key={provider}>
+                                    <button
+                                        onClick={() => {
+                                            const allSelectable = accounts.filter((acc) => {
+                                                if (acc.provider === provider || selected.some((a) => a.id === acc.id)) {
+                                                    return { ...acc, is_selected: true }
                                                 }
-                                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                            />
-                                            <label
-                                                htmlFor={`select-${account.id}`}
-                                                className="ml-2 text-[8px] text-text-secondary"
-                                            >
-                                                Select
-                                            </label>
-                                        </div>
-
-                                        <div className="flex items-center">
-                                            {checked.includes(account.email ?? '') ? (
-                                                <span className="inline-block w-2 h-2 bg-secondary rounded-full" />
-                                            ) : (
-                                                <span className="inline-block w-2 h-2 bg-gray-300 rounded-full" />
-                                            )}
-                                        </div>
-                                    </div>
+                                            }
+                                            );
+                                            setSelected(allSelectable);
+                                        }}
+                                        className="btn"
+                                    >
+                                        Select Provider
+                                    </button>
+                                    {
+                                        accountsSortedByProvider[provider as Provider].map(account =>
+                                            <Account account={account} selected={selected} handleToggleAccount={handleToggleAccount} checked={checked} />
+                                        )
+                                    }
                                 </div>
-                            </li>
-                        ))}
-                </ul>
-            )}
-        </div>
+                            )
+                        })}
+
+
+                    </ul>
+                </>
+            )
+            }
+        </div >
+    );
+};
+
+const Account = ({ account, selected, handleToggleAccount, checked }: { account: account, selected: SelectableAccount[], handleToggleAccount: (account: account, isSelected: boolean) => void, checked: string[] }) => {
+    return (
+        <li
+            onClick={() => {
+                handleToggleAccount(
+                    account,
+                    !selected.some((a) => a.id === account.id)
+                );
+            }}
+            key={account.id}
+            className="px-4 py-2 w-100 flex grow items-center justify-between rounded bg-gray-100 hover:bg-white"
+        >
+            <div className="text-text-primary">{account.email}</div>
+            <div className="item-actions">
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                        <input
+                            id={`select-${account.id}`}
+                            type="checkbox"
+                            checked={selected.some((a) => a.id === account.id)}
+                            onChange={(e) =>
+                                handleToggleAccount(account, e.target.checked)
+                            }
+                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                        <label
+                            htmlFor={`select-${account.id}`}
+                            className="ml-2 text-[8px] text-text-secondary"
+                        >
+                            Select
+                        </label>
+                    </div>
+
+                    <div className="flex items-center">
+                        {checked.includes(account.email ?? '') ? (
+                            <span className="inline-block w-2 h-2 bg-secondary rounded-full" />
+                        ) : (
+                            <span className="inline-block w-2 h-2 bg-gray-300 rounded-full" />
+                        )}
+                    </div>
+                </div>
+            </div>
+        </li>
     );
 };
 

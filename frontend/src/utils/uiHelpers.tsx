@@ -25,4 +25,4 @@ export const StatusBadge: React.FC<{ status: string | null | undefined }> = ({ s
     );
 };
 
-// Сюда можно добавить другие UI хелперы 
+// Сюда можно добавить другие UI хелперы
