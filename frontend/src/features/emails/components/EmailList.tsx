@@ -1,7 +1,6 @@
 import { SelectableEmail } from "../../../types/types";
 import { from_email } from "../../../types/types";
-import { EmailList as FeatureEmailList } from "./EmailList";
-
+import { FeatureEmailList } from "./FeatureEmailList";
 interface EmailListProps {
     emails: SelectableEmail[];
     toggleSelection: (selected: SelectableEmail[]) => void;

@@ -35,9 +35,11 @@ class DashboardController {
         (sum, item) => sum + (item.emails_processed || 0),
         0
       );
-      const successfulReports = reportStats.filter((item) => item.status === 'success').length;
-      const successRate = totalReports > 0 ? (successfulReports / totalReports) * 100 : 0;
 
+      const successfulReports = reportStats.filter((item) => item.status === 'success').length;
+      const partialSuccessReports = reportStats.filter((item) => item.status === 'partial_failure').length;
+      const successRate = totalReports > 0 ? ((successfulReports + partialSuccessReports) / totalReports) * 100 : 0;
+      console.log(successfulReports, partialSuccessReports, totalReports);
       // Группировка по аккаунтам
       const accountsData: Record<
         string,
