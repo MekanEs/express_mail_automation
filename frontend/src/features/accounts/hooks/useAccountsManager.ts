@@ -112,6 +112,14 @@ export const useAccountsManager = (
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
   };
 
+  const clearByProvider = (provider: string) => {
+    // Получаем все текущие выбранные аккаунты (чтобы сохранить уже выбранные)
+    const currentSelected = setSelectedAccounts ? initialSelectedAccounts : selectedAccounts;
+
+    // Находим все аккаунты этого провайдера
+    setSelected(currentSelected.filter(acc => acc.provider !== provider));
+  };
+
   return {
     accounts,
     isFetching,
@@ -126,6 +134,7 @@ export const useAccountsManager = (
     clearAll,
     reloadAccounts,
     canSelectAll: accounts.length > 0 && accounts.length !== (setSelectedAccounts ? initialSelectedAccounts : selectedAccounts).length,
-    canClearAll: (setSelectedAccounts ? initialSelectedAccounts : selectedAccounts).length > 0
+    canClearAll: (setSelectedAccounts ? initialSelectedAccounts : selectedAccounts).length > 0,
+    clearByProvider
   };
 };

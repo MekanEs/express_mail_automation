@@ -9,6 +9,7 @@ interface AccountsByProviderListProps {
   checkedEmails: string[];
   onToggleAccount: (account: account, isSelected: boolean) => void;
   onSelectProvider: (provider: string) => void;
+  onClearProvider: (provider: string) => void;
 }
 
 export const AccountsByProviderList: FC<AccountsByProviderListProps> = ({
@@ -16,7 +17,8 @@ export const AccountsByProviderList: FC<AccountsByProviderListProps> = ({
   selectedAccounts,
   checkedEmails,
   onToggleAccount,
-  onSelectProvider
+  onSelectProvider,
+  onClearProvider
 }) => {
   if (!accountsSortedByProvider) {
     return null;
@@ -26,12 +28,19 @@ export const AccountsByProviderList: FC<AccountsByProviderListProps> = ({
     <ul className="rounded bg-gray-200 m-auto mt-2 flex flex-wrap p-2 gap-2 justify-center">
       {Object.keys(accountsSortedByProvider).map(provider => (
         <div className="flex flex-col gap-1 p-2 rounded bg-gray-300" key={provider}>
-          <button
-            onClick={() => onSelectProvider(provider)}
-            className="btn"
-          >
-            Select Provider
-          </button>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => onSelectProvider(provider)}
+              className="btn w-full"
+            >
+              Select Provider
+            </button>
+            <button
+              onClick={() => onClearProvider(provider)}
+              className="btn w-full"
+            >
+              Clear Provider
+            </button></div>
           {accountsSortedByProvider[provider as Provider].map(account => (
             <AccountItem
               key={account.id}

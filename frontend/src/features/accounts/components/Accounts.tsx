@@ -25,7 +25,8 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
         clearAll,
         reloadAccounts,
         canSelectAll,
-        canClearAll
+        canClearAll,
+        clearByProvider
     } = useAccountsManager(selected, setSelected);
 
     return (
@@ -59,6 +60,7 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
                         checkedEmails={checked}
                         onToggleAccount={toggleAccountSelection}
                         onSelectProvider={selectByProvider}
+                        onClearProvider={clearByProvider}
                     />
                 </>
             )}
