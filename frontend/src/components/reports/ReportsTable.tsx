@@ -1,9 +1,9 @@
 import React from 'react';
 import { Report, ReportGroup } from '../../types/types';
-import { formatDate } from '../../utils/formatters';
-import { StatusBadge } from '../../utils/uiHelpers';
+import { formatDate } from '../../shared/utils/formatters';
+import { StatusBadge } from '../../shared/utils/uiHelpers';
 import { UseMutateFunction } from '@tanstack/react-query';
-import { DeleteReportsParams } from '../../api/reportsApi';
+import { DeleteReportsParams } from '../../features/reports/api';
 
 interface ReportsTableProps {
     reportGroups: ReportGroup[];

@@ -1,10 +1,10 @@
 import { FC, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { account, Provider, SelectableAccount } from '../../types/types';
-import { checkAccounts, getAccounts } from '../../api/accountsApi';
-import { useAccountStatusCache } from '../../hooks/useAccountStatusCache';
+import { checkAccounts, getAccounts } from '../../features/accounts/api';
 import toast from 'react-hot-toast';
 import Loader from '../Loader/Loader';
+import { useAccountStatusCache } from '../../features/accounts/hooks/useAccountStatusCache';
 
 interface AccountsProps {
     selected: SelectableAccount[];

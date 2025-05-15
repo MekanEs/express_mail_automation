@@ -1,4 +1,3 @@
-
 import { useMutation } from "@tanstack/react-query";
 import { handleApiResponse } from "../utils/apiUtils";
 import toast from "react-hot-toast";
@@ -14,25 +13,25 @@ const API_URL = BASE_API;  // Предполагаем, что Vite настро
  */
 type ResponseType = { success: boolean; message: string }
 export const sendMessage = async (): Promise<ResponseType> => {
-    const response = await fetch(`${API_URL}/sendMessage`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+  const response = await fetch(`${API_URL}/sendMessage`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
 
-    });
-    const checkedResponse = await handleApiResponse(response);
-    return await checkedResponse.json();
+  });
+  const checkedResponse = await handleApiResponse(response);
+  return await checkedResponse.json();
 };
 
 export const useSendMessage = () => {
-    return useMutation<ResponseType, Error>({
-        mutationFn: sendMessage,
-        onSuccess: () => {
-            toast.success(`Email sent successfully!`);
-        },
-        onError: (error) => {
-            toast.error(`Failed to send email: ${error.message}`);
-        },
-    });
+  return useMutation<ResponseType, Error>({
+    mutationFn: sendMessage,
+    onSuccess: () => {
+      toast.success(`Email sent successfully!`);
+    },
+    onError: (error) => {
+      toast.error(`Failed to send email: ${error.message}`);
+    },
+  });
 };

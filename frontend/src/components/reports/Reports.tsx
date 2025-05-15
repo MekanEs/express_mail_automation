@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Report, } from "../../types/types";
-import { getReports, useDeleteReports } from "../../api/reportsApi";
+import { getReports } from "../../features/reports/api";
+import { useDeleteReports } from "../../features/reports/hooks/useReportMutations";
 
 export const Reports = () => {
   const { data: groupedReports = {} as Record<string, Report[]>, isFetching, refetch } = useQuery<Record<string, Report[]>, Error, Record<string, Report[]>>({

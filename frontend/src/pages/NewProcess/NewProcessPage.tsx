@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { ProcessForm } from '../../components/process/ProcessForm';
 import { SelectableAccount, SelectableEmail } from '../../types/types';
-import { useAccounts } from '../../hooks/useAccountQueries';
-import { useSenders } from '../../hooks/useSenderQueries';
+import { useAccounts } from '../../features/accounts/hooks/useAccountQueries';
+import { useSenders } from '../../features/emails/hooks/useSenderQueries';
 import Accounts from '../../components/accounts/Accounts';
 import { EmailList } from '../../components/emails/EmailList';
 import LogViewer from '../../components/LogsViewer/LogsViewer';

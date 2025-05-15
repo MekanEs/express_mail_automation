@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Database } from '../../types/database.types';
-import { BASE_API } from '../../api/constants';
-import { useArchiveSenderAggregates } from '../../api/reportsApi';
+import { BASE_API } from '../../shared/api/constants';
+import { useArchiveSenderAggregates } from '../../features/reports/hooks/useReportMutations';
 
 // Define the type based on sender_aggregates.Row
 type SenderAggregateRow = Database['public']['Tables']['sender_aggregates']['Row'];

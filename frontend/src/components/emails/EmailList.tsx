@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { SelectableEmail } from "../../types/types";
-import { addEmail, deleteEmail, getEmails } from "../../api/emailsApi";
 import toast from 'react-hot-toast';
 import { getFromEmails } from "../../api/sendersApi";
-
+import { addEmail, deleteEmail, getEmails } from "../../features/emails/api";
 interface EmailListProps {
     emails: SelectableEmail[];
     toggleSelection: (selected: SelectableEmail[]) => void;

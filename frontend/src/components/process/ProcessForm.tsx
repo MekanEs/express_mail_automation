@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import { ProcessRequestBody, SelectableAccount, SelectableEmail } from '../../types/types';
-import { useStartProcess } from '../../hooks/useProcessMutations';
+import { useStartProcess } from '../../features/processes/hooks/useProcessMutations';
 import toast from 'react-hot-toast';
 
 import { ProcessFormInput } from './processFormInput';

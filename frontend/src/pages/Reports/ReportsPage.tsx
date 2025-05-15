@@ -1,6 +1,7 @@
 import { useQuery, } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
-import { getReports, useDeleteReports, } from "../../api/reportsApi";
+import { getReports } from "../../features/reports/api";
+import { useDeleteReports } from "../../features/reports/hooks/useReportMutations";
 import { Report, ReportGroup, GetReportsParams, PaginatedReportsResponse, Pagination } from "../../types/types";
 import { PaginationComponent } from "../../components/common/Pagination";
 import { ReportsTable } from "../../components/reports/ReportsTable";
