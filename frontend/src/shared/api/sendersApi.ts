@@ -1,6 +1,6 @@
-import { BASE_API } from "../shared/api/constants";
-import { handleApiResponse } from "../shared/utils/apiUtils";
-import { from_email } from "../types/types";
+import { BASE_API } from "./constants";
+import { handleApiResponse } from "../utils/apiUtils";
+import { from_email } from "../../types/types";
 
 const API_URL = BASE_API
 
