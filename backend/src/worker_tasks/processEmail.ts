@@ -103,7 +103,6 @@ const processEmailTask: Task = async (
           allBrowserTasks,
           openRate,
           report,
-          providerConfig.mailboxes.join(', ')
         );
         helpers.logger.info(
           `[Worker Task ID: ${helpers.job.id}] Завершена обработка ${allBrowserTasks.length} задач в браузере для аккаунта ${account.email}.`

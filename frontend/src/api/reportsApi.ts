@@ -5,6 +5,7 @@ import {
 } from "../types/types";
 import toast from "react-hot-toast";
 import { BASE_API } from "./constants";
+import { handleApiResponse } from "../utils/apiUtils";
 
 const API_URL = BASE_API; // Убедитесь, что URL правильный
 
@@ -70,4 +71,33 @@ export const useDeleteReports = () => {
         },
     });
     return { deleteReports: runDeleteReports, isDeleting };
+};
+export const archiveSenderAggregates = async (): Promise<{ message: string, count?: number }> => {
+    const response = await fetch(`${BASE_API}/admin/archive-sender-aggregates`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    // Предполагаем, что handleApiResponse корректно обрабатывает .json() и ошибки
+    const checkedResponse = await handleApiResponse(response);
+    return await checkedResponse.json();
+};
+
+// Добавьте этот хук
+export const useArchiveSenderAggregates = () => {
+    const queryClient = useQueryClient();
+    return useMutation<{ message: string, count?: number }, Error, void>({ // void, так как нет аргументов для mutationFn
+        mutationFn: archiveSenderAggregates,
+        onSuccess: (data) => {
+            toast.success(data.message || 'Агрегаты отправителей успешно заархивированы!');
+            // Инвалидируем кеш для таблицы архива, чтобы она обновилась
+            queryClient.invalidateQueries({ queryKey: ['senderAggregatesArchive'] });
+            // Можно также инвалидировать и основной senderAggregates, если это имеет смысл
+            // queryClient.invalidateQueries({ queryKey: ['senderAggregates'] });
+        },
+        onError: (error) => {
+            toast.error(`Ошибка архивации: ${error.message}`);
+        },
+    });
 };

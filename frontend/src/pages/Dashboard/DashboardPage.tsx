@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Database } from '../../types/database.types';
 import { BASE_API } from '../../api/constants';
+import { useArchiveSenderAggregates } from '../../api/reportsApi';
 
 // Define the type based on sender_aggregates.Row
 type SenderAggregateRow = Database['public']['Tables']['sender_aggregates']['Row'];
@@ -50,20 +51,18 @@ const useSenderAggregatesArchive = () => {
 const SenderAggregatesTable: React.FC = () => {
     const { data, isLoading, error } = useSenderAggregates();
     const { data: dataArchive, isLoading: isLoadingArchive, error: errorArchive } = useSenderAggregatesArchive();
-    const [showArchive, setShowArchive] = useState(false); // New state to toggle data source
+    const [showArchive, setShowArchive] = useState(false);
+
+    const { mutate: runArchive, isPending: isArchiving } = useArchiveSenderAggregates();
 
     if (isLoading) return <div>Loading sender aggregates...</div>;
     if (error) return <div>Error loading sender aggregates: {error.message}</div>;
-    if (isLoadingArchive) return <div>Loading sender aggregates archive...</div>; // Archive loading can be separate
+    if (isLoadingArchive) return <div>Loading sender aggregates archive...</div>;
     if (errorArchive) return <div>Error loading sender aggregates archive: {errorArchive.message}</div>;
 
     const displayData = showArchive ? dataArchive : data;
 
-    // Add a more robust check to ensure displayData is an array before mapping
     if (!Array.isArray(displayData)) {
-        // This condition can be true if the selected data source (live or archive) hasn't loaded yet or returned non-array data
-        // The loading checks above should ideally prevent this for loaded data,
-        // but this handles cases where data might be null/undefined even after "loading" is false.
         if ((showArchive && !dataArchive) || (!showArchive && !data)) {
             return <div>Data is still loading or not available.</div>;
         }
@@ -73,11 +72,26 @@ const SenderAggregatesTable: React.FC = () => {
 
     if (displayData.length === 0) return <div>No data available for the selected source.</div>;
 
+    const handleArchiveClick = () => {
+        if (window.confirm('Вы уверены, что хотите скопировать текущие агрегированные данные в архив? Существующие записи в архиве с теми же отправителями будут обновлены.')) {
+            runArchive();
+        }
+    };
+
     return (
         <div style={{ marginTop: '20px' }}>
-            <button className='btn btn-primary' onClick={() => setShowArchive(!showArchive)}>
-                {showArchive ? "Show Live Data" : "Show Archive"}
-            </button>
+            <div className="flex space-x-2 mb-4">
+                <button className='btn btn-primary' onClick={() => setShowArchive(!showArchive)}>
+                    {showArchive ? "Показать оперативные данные" : "Показать архив"}
+                </button>
+                <button
+                    className='btn'
+                    onClick={handleArchiveClick}
+                    disabled={isArchiving}
+                >
+                    {isArchiving ? 'Архивация...' : 'Скопировать в архив'}
+                </button>
+            </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                     <tr style={{ borderBottom: '1px solid #ccc' }}>
@@ -94,10 +108,10 @@ const SenderAggregatesTable: React.FC = () => {
                         <tr key={row.sender} style={{ borderBottom: '1px solid #eee' }}>
                             <td style={{ padding: '8px' }}>{row.sender}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_emails_processed}</td>
-                            <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_links_attempted_open}/{row.total_links_opened}</td>
+                            <td style={{ textAlign: 'right', padding: '8px' }}>{`${row.total_links_attempted_open}/${row.total_links_opened}`}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_replies_sent}</td>
                             <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_reports}</td>
-                            <td style={{ textAlign: 'right', padding: '8px' }}>{row.total_spam_found}/{row.spam_moved}</td>
+                            <td style={{ textAlign: 'right', padding: '8px' }}>{`${row.total_spam_found}/${row.spam_moved}`}</td>
                         </tr>
                     ))}
                 </tbody>
