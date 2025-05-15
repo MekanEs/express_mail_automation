@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import { SelectableAccount } from '../../types/types';
-import Loader from '../Loader/Loader';
-import { useAccountsManager } from '../../features/accounts/hooks/useAccountsManager';
-import { AccountsToolbar } from '../../features/accounts/components/AccountsToolbar';
-import { AccountsByProviderList } from '../../features/accounts/components/AccountsByProviderList';
+import { SelectableAccount } from '../../../types/types';
+import Loader from '../../../components/Loader/Loader';
+import { useAccountsManager } from '../hooks/useAccountsManager';
+import { AccountsToolbar } from './AccountsToolbar';
+import { AccountsByProviderList } from './AccountsByProviderList';
 
 interface AccountsProps {
     selected: SelectableAccount[];

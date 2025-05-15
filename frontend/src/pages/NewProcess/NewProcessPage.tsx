@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { ProcessForm } from '../../components/process/ProcessForm';
+import { useState, useMemo, useEffect } from 'react';
 import { SelectableAccount, SelectableEmail } from '../../types/types';
 import { useAccounts } from '../../features/accounts/hooks/useAccountQueries';
 import { useSenders } from '../../features/emails/hooks/useSenderQueries';
-import Accounts from '../../components/accounts/Accounts';
-import { EmailList } from '../../components/emails/EmailList';
+import Accounts from '../../features/accounts/components/Accounts';
+import { EmailList } from '../../features/emails/components/EmailList';
 import LogViewer from '../../components/LogsViewer/LogsViewer';
+import { ProcessForm } from '../../features/processes/components/ProcessForm';
 
 export const NewProcessPage: React.FC = () => {
     // Состояние для данных формы
@@ -31,7 +31,7 @@ export const NewProcessPage: React.FC = () => {
 
     // Сбрасываем выбор, если список доступных аккаунтов изменился (например, после refetch)
     // Это предотвращает ситуацию, когда выбран аккаунт, которого больше нет в списке
-    React.useEffect(() => {
+    useEffect(() => {
         setSelectedAccounts(currentSelection =>
             currentSelection.filter(selectedAcc =>
                 availableAccounts.some(availableAcc => availableAcc.id === selectedAcc.id)
@@ -40,7 +40,7 @@ export const NewProcessPage: React.FC = () => {
     }, [availableAccounts]);
 
     // Reset sender selection if the list of available senders changes
-    React.useEffect(() => {
+    useEffect(() => {
         setSelectedSenders(currentSelection =>
             currentSelection.filter(selectedSender =>
                 availableSenders.some(availableSender => availableSender.email === selectedSender.email)
