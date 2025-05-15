@@ -15,7 +15,6 @@ export class FileSystemService {
         return false;
       }
     }
-    logger.debug(`[FS Service] Директория уже существует: ${dirPath}`);
     return true;
   }
 
@@ -57,7 +56,6 @@ export class FileSystemService {
             // Для рекурсивного удаления: await fs.promises.rm(filePath, { recursive: true, force: true });
           } else {
             await fs.promises.unlink(filePath);
-            logger.debug(`[FS Service] Удален файл при очистке: ${filePath}`);
           }
         } catch (err) {
           handleError(err, `[FS Service] Не удалось удалить элемент ${filePath} при очистке директории ${dirPath}`, 'cleanupDirectory.unlink');

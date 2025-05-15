@@ -1,8 +1,11 @@
-import { Request, Response, } from 'express';
-import { ProcessRequestBody, StartProcessingParams } from '../types/types';
+// backend/src/controllers/process.controller.ts (Изменения)
+import { Request, Response } from 'express';
+import { ProcessRequestBody, StartProcessResponse } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
-import { processOrchestrationService } from '../services/process/processOrchestration.service';
+// import { processOrchestrationService } from '../services/process/processOrchestration.service'; // Больше не вызываем напрямую
+import { addProcessJob } from '../queue/pgQueueService'; // Импортируем функцию добавления задачи
+import { ProcessJobData } from '../types/queueTypes'; // Импортируем тип данных задачи
 
 class ProcessController {
   public async processEmails(
@@ -16,35 +19,44 @@ class ProcessController {
       return;
     }
 
-    const process_id = uuidv4();
+    const process_id = uuidv4(); // Ваш уникальный ID процесса
 
-    res.status(202).send({
+    const jobPayload: ProcessJobData = { // Используем тип задачи
       process_id,
-      message: 'Запрос на обработку почты принят и выполняется в фоновом режиме.'
-    });
+      // Убедитесь, что передаете только необходимые данные аккаунтов (без is_selected)
 
-    const orchestrationParams: StartProcessingParams = {
-      accounts,
-      emails,
+      accounts: accounts,
+      emails: emails.filter((email): email is string => email !== null),
       limit,
       openRate,
       repliesCount,
-      process_id,
-      baseOutputPath: 'files',
+      baseOutputPath: 'files', // Или другой путь по умолчанию
     };
 
-    // Запускаем длительную обработку асинхронно
-    processOrchestrationService.startEmailProcessing(orchestrationParams)
-      .catch((err) => {
-        // Эта ошибка маловероятна, если startEmailProcessing сам обрабатывает ошибки внутри циклов.
-        // Но если сама функция startEmailProcessing выбросит исключение до начала циклов, оно попадет сюда.
-        logger.error(
-          `[Controller Process ID: ${process_id}] Критическая непредвиденная ошибка в запуске фоновой задачи processEmails:`,
-          err
-        );
-        // Ошибку клиенту уже не отправить, так как ответ 202 был дан.
-        // Здесь можно отправить уведомление в систему мониторинга.
+    try {
+      // Добавляем задачу в очередь graphile-worker
+      const graphileWorkerJobId = await addProcessJob(jobPayload);
+
+      logger.info(`[Controller ID: ${process_id}] Задача добавлена в очередь Graphile-Worker с ID: ${graphileWorkerJobId}`);
+
+      // Отвечаем клиенту немедленно
+      const response: StartProcessResponse = {
+        process_id, // Возвращаем ваш сгенерированный ID процесса
+        message: 'Запрос на обработку почты принят и добавлен в очередь.'
+      };
+      res.status(202).send(response); // 202 Accepted
+
+    } catch (queueError) {
+      logger.error(
+        `[Controller ID: ${process_id}] Ошибка при добавлении задачи в очередь:`,
+        queueError
+      );
+      // В случае ошибки добавления в очередь, отправляем 500
+      res.status(500).send({
+        process_id, // Возвращаем ID, если он был сгенерирован до ошибки
+        message: 'Не удалось добавить запрос на обработку в очередь. Попробуйте позже.'
       });
+    }
   }
 }
 export const processController = new ProcessController();

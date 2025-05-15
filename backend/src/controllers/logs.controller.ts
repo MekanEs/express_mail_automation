@@ -54,6 +54,18 @@ class LogsController {
       clearInterval(keepAliveInterval);
     });
   }
+  public log(req: Request, res: Response) {
+    const logPayload = req.body as LogPayload; // Предполагаем, что Worker присылает объект LogPayload
+
+    if (logPayload && logPayload.level && logPayload.message && logPayload.timestamp) {
+      // Эмитируем событие на локальном EventEmitter API-сервера
+      loggerEvents.emit('log', logPayload);
+      res.status(200).send({ message: 'Log received' });
+    } else {
+      logger.warn('[Internal Log API] Получен некорректный payload лога:', req.body);
+      res.status(400).send({ message: 'Invalid log payload' });
+    }
+  }
 }
 
 export const logsController = new LogsController();

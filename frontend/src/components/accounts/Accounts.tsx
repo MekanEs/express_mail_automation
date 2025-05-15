@@ -68,7 +68,7 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
             <div className="card-header relative">
                 <button
                     onClick={() => queryClient.invalidateQueries({ queryKey: ['accounts'] })}
-                    className="absolute top-2 right-2 p-1 text-lg text-text-secondary hover:text-primary hover:bg-gray-100 rounded"
+                    className="btn absolute top-2 right-2 p-2 text-lg text-text-secondary hover:text-primary hover:bg-gray-100 rounded"
                     aria-label="Reload accounts"
                 >
                     ↻
@@ -114,7 +114,7 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
             ) : (
                 <>
                     <h3 className="text-text-secondary text-lg mt-4 ">Кол-во аккаунтов: {accounts.length}</h3>
-                    <ul className="rounded bg-gray-200 mt-2 flex flex-wrap p-2 gap-2">
+                    <ul className="rounded bg-gray-200 m-auto mt-2 flex flex-wrap p-2 gap-2 justify-center">
                         {accountsSortedByProvider && Object.keys(accountsSortedByProvider).map(provider => {
                             return (
                                 <div className="flex flex-col gap-1 p-2 rounded bg-gray-300" key={provider}>
@@ -159,10 +159,9 @@ const Account = ({ account, selected, handleToggleAccount, checked }: { account:
                     !selected.some((a) => a.id === account.id)
                 );
             }}
-            key={account.id}
-            className="px-4 py-2 w-100 flex grow items-center justify-between rounded bg-gray-100 hover:bg-white"
+            className="px-4 py-2 w-100 flex grow items-center justify-between rounded cursor-pointer bg-gray-100 hover:bg-white "
         >
-            <div className="text-text-primary">{account.email}</div>
+            <div className="text-text-primary cursor-pointer">{account.email}</div>
             <div className="item-actions">
                 <div className="flex items-center space-x-4">
                     <div className="flex items-center">

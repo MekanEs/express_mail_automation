@@ -64,7 +64,6 @@ export class EmailContentService {
               validLink = trimmedHref;
               return false; // false для .each означает "остановить итерацию", так как мы нашли первую валидную
             } catch (urlParseError) {
-              // Если URL невалиден (например, "http://"), пропускаем
               logger.debug(`[EmailContent Service] Невалидный URL при парсинге: ${trimmedHref}`, urlParseError);
               return true; // продолжить итерацию
             }

@@ -4,5 +4,5 @@ import { logsController } from '../controllers/logs.controller';
 const router = Router();
 
 router.get('/stream', logsController.streamLogs);
-
+router.post('/stream', logsController.log);
 export default router;

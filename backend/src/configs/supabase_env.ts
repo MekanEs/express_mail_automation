@@ -4,5 +4,6 @@ dotenv.config();
 export const env = {
   supabaseUrl: process.env.SUPABASE_URL!,
   supabaseKey: process.env.SUPABASE_KEY!,
-  supabaseSchema: process.env.SUPABASE_SCHEMA || 'public'
+  supabaseSchema: process.env.SUPABASE_SCHEMA || 'public',
+  DATABASE_URL: process.env.DATABASE_URL!,
 };

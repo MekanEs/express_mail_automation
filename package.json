@@ -5,7 +5,9 @@
   "scripts": {
     "backend": "npm run dev -w backend",
     "frontend": "npm run dev -w frontend",
-    "start": "concurrently \"npm run backend\" \"npm run frontend\""
+    "worker": "npm run worker:dev -w backend",
+    "dev": "concurrently \"npm run frontend\" \"npm run backend\" \"npm run worker\"",
+    "start": "concurrently \"npm run frontend\" \"npm run -w backend start\" \"npm run -w backend worker:start\""
   },
   "repository": {
     "type": "git",

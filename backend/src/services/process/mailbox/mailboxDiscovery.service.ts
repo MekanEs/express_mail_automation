@@ -17,7 +17,6 @@ export class MailboxDiscoveryService {
   }
 
   public async findSentMailbox(client: ImapFlow, user: string): Promise<string | null> {
-    logger.debug(`[Mailbox Discovery] Поиск папки "Отправленные" для пользователя ${user}`);
     const allMailboxes = await this.listMailboxesSafe(client, user);
     const foundSentBox = allMailboxes.find(box =>
       box.specialUse === '\\Sent' ||
@@ -36,7 +35,6 @@ export class MailboxDiscoveryService {
   }
 
   public async findDraftMailbox(client: ImapFlow, user: string): Promise<string | null> {
-    logger.debug(`[Mailbox Discovery] Поиск папки "Черновики" для пользователя ${user}`);
     const allMailboxes = await this.listMailboxesSafe(client, user);
     const foundDraftBox = allMailboxes.find(box =>
       box.specialUse === '\\Drafts' ||

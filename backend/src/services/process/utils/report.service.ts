@@ -73,7 +73,6 @@ export class ReportService {
 
   public async submitReport(report: ProcessReport, inboxPaths: string): Promise<void> {
     logger.info(`[Report Service] Отправка отчета для process_id: ${report.process_id}, account: ${report.account}`);
-    logger.debug('[Report Service] Данные отчета:', report);
 
     const reportDataToInsert: InsertReportType = {
       process_id: report.process_id,
