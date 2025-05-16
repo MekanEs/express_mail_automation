@@ -1,24 +1,23 @@
-import { StartProcessingParams } from '../../types/types';
+import { StartProcessingParams, AccountProcessingParams } from '../../types/types';
 import { getConfig } from '../../utils/getConfig';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
-import { accountProcessingService, AccountProcessingParams } from './accountProcessing.service';
+import { accountProcessingService } from './accountProcessing.service';
 import { Browser } from 'puppeteer';
 import { browserInteractionService, BrowserTask } from './browser/browserInteraction.service';
 import { reportService } from './utils/report.service';
 import { fileSystemService } from './utils/fileSystem.service';
 import { manageDirectories } from './utils/manageDirectories';
+import { ProcessReport } from '../../types/reports';
 
 export class ProcessOrchestrationService {
   public async startEmailProcessing(params: StartProcessingParams): Promise<void> {
     const {
       accounts,
       emails,
-      limit = 100,
-      openRate = 70,
-      repliesCount = 0,
       process_id,
       baseOutputPath,
+      config,
     } = params;
 
     logger.info(`[Orchestration ID: ${process_id}] Запущен процесс обработки почты.`);
@@ -31,9 +30,9 @@ export class ProcessOrchestrationService {
 
       for (const account of accounts) {
         const providerConfig = getConfig(account.provider);
+        const report: ProcessReport = reportService.initializeReport(process_id, account.email, emails.join(' ,'));
 
-        const report = reportService.initializeReport(process_id, account.email, emails.join(' ,'));
-        const allBrowserTasks: BrowserTask[] = [];
+        const allBrowserTasksForAccount: BrowserTask[] = [];
 
         for (const fromEmail of emails) {
           const tempDirPath = manageDirectories(__dirname, tempDirectories, process_id, account.email, baseOutputPath)
@@ -43,24 +42,23 @@ export class ProcessOrchestrationService {
             fromEmail,
             providerConfig,
             process_id,
-            limit,
-            repliesToAttempt: repliesCount,
+            config,
             report,
             tempDirPath
           };
 
           try {
-            const tasksFromAccount = await accountProcessingService.processAccountFromSender(accountProcessingParams);
-            allBrowserTasks.push(...tasksFromAccount);
+            const tasksFromSender = await accountProcessingService.processAccountFromSender(accountProcessingParams);
+            allBrowserTasksForAccount.push(...tasksFromSender);
           } catch (accountProcessingError) {
             handleError(accountProcessingError, `[Orchestration ID: ${process_id}] Ошибка при обработке ${account.email} от ${fromEmail}:`);
           }
         }
-        if (allBrowserTasks.length > 0 && browser) {
-          await browserInteractionService.processTasksWithBrowser(browser, allBrowserTasks, openRate, report, providerConfig.mailboxes.join(', '));
-          logger.info(`[Orchestration ID: ${process_id}] Завершена обработка ${allBrowserTasks.length} задач в браузере.`);
+        if (allBrowserTasksForAccount.length > 0 && browser) {
+          await browserInteractionService.processTasksWithBrowser(browser, allBrowserTasksForAccount, config.openRate, report);
+          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Завершена обработка ${allBrowserTasksForAccount.length} задач в браузере.`);
         } else {
-          logger.info(`[Orchestration ID: ${process_id}] Нет задач для обработки в браузере или браузер недоступен.`);
+          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Нет задач для обработки в браузере или браузер недоступен.`);
         }
       }
 

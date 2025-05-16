@@ -1,6 +1,6 @@
 // backend/src/controllers/process.controller.ts (Изменения)
 import { Request, Response } from 'express';
-import { ProcessRequestBody, StartProcessResponse } from '../types/types';
+import { ProcessRequestBody, StartProcessResponse, ProcessConfig } from '../types/types';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger';
 // import { processOrchestrationService } from '../services/process/processOrchestration.service'; // Больше не вызываем напрямую
@@ -21,16 +21,20 @@ class ProcessController {
 
     const process_id = uuidv4(); // Ваш уникальный ID процесса
 
-    const jobPayload: ProcessJobData = { // Используем тип задачи
-      process_id,
-      // Убедитесь, что передаете только необходимые данные аккаунтов (без is_selected)
+    // Create ProcessConfig object
+    const processConfig: ProcessConfig = {
+      limit: limit !== undefined ? limit : 100, // Provide default if undefined
+      openRate: openRate !== undefined ? openRate : 70,
+      repliesCount: repliesCount !== undefined ? repliesCount : 0,
+      // Add other default values for ProcessConfig fields if necessary
+    };
 
-      accounts: accounts,
+    const jobPayload: ProcessJobData = {
+      process_id,
+      accounts: accounts, // Assuming accounts are already Omit<Account, 'is_selected'> or conversion happens elsewhere
       emails: emails.filter((email): email is string => email !== null),
-      limit,
-      openRate,
-      repliesCount,
-      baseOutputPath: 'files', // Или другой путь по умолчанию
+      config: processConfig, // Use the created config object
+      baseOutputPath: 'files',
     };
 
     try {

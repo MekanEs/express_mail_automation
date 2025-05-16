@@ -1,12 +1,9 @@
-import { Account } from './types';
+import { Account, ProcessConfig } from './types';
 
 export interface ProcessJobData {
   process_id: string;
-  accounts: Account[]; // Используйте базовый тип Account
+  accounts: Omit<Account, 'is_selected'>[];
   emails: string[];
-  limit?: number;
-  openRate?: number;
-  repliesCount?: number;
+  config: ProcessConfig;
   baseOutputPath: string;
-  // Добавьте любые другие параметры, необходимые для обработки
 }
