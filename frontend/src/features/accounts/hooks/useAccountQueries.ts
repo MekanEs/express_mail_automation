@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAccounts } from '../api'; // Adjusted path
-import { account } from '../../../types/types'; // Adjusted path
+import { Account } from '../../../types/types'; // Adjusted path, changed to Account
 
 /**
  * Хук для получения списка доступных аккаунтов.
@@ -9,7 +9,7 @@ import { account } from '../../../types/types'; // Adjusted path
 export const useAccounts = (options?: {
   staleTime?: number;
 }) => {
-  return useQuery<account[], Error>({
+  return useQuery<Account[], Error>({
     queryKey: ['accounts'],
     queryFn: getAccounts,
     staleTime: options?.staleTime ?? 1000 * 60 * 5,

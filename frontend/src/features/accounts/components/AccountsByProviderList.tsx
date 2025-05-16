@@ -1,13 +1,12 @@
 import { FC } from 'react';
-import { Provider, SelectableAccount } from '../../../types/types';
+import { Provider, SelectableAccount, Account } from '../../../types/types';
 import { AccountItem } from './AccountItem';
-import { account } from '../../../types/types';
 
 interface AccountsByProviderListProps {
   accountsSortedByProvider: Record<Provider, SelectableAccount[]> | null;
   selectedAccounts: SelectableAccount[];
   checkedEmails: string[];
-  onToggleAccount: (account: account, isSelected: boolean) => void;
+  onToggleAccount: (account: Account, isSelected: boolean) => void;
   onSelectProvider: (provider: string) => void;
   onClearProvider: (provider: string) => void;
 }
@@ -33,13 +32,13 @@ export const AccountsByProviderList: FC<AccountsByProviderListProps> = ({
               onClick={() => onSelectProvider(provider)}
               className="btn w-full"
             >
-              Select Provider
+              Выбрать провайдера
             </button>
             <button
               onClick={() => onClearProvider(provider)}
               className="btn w-full"
             >
-              Clear Provider
+              Очистить провайдера
             </button></div>
           {accountsSortedByProvider[provider as Provider].map(account => (
             <AccountItem

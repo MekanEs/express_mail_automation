@@ -33,7 +33,7 @@ export const ReportRowItem: React.FC<ReportRowItemProps> = ({ report, onClick })
       <td className="text-gray-500">
         {report.links_attemptedOpen ?? 0}/{report.links_found ?? 0}
         {report.links_errors != null && report.links_errors > 0 && (
-          <span className="text-red-600 ml-1 font-medium">({report.links_errors} err)</span>
+          <span className="text-red-600 ml-1 font-medium">({report.links_errors} ош)</span>
         )}
       </td>
       <td className="text-gray-500 text-center">{report.spam_found ?? 0}</td>

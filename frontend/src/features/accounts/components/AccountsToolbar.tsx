@@ -26,32 +26,32 @@ export const AccountsToolbar: FC<AccountsToolbarProps> = ({
       <button
         onClick={onReload}
         className="btn absolute top-2 right-2 p-2 text-lg text-text-secondary hover:text-primary hover:bg-gray-100 rounded"
-        aria-label="Reload accounts"
+        aria-label="Обновить аккаунты"
       >
         ↻
       </button>
-      <h2 className="text-xl font-semibold text-text-primary mb-2">Accounts</h2>
+      <h2 className="text-xl font-semibold text-text-primary mb-2">Аккаунты</h2>
       <div className="flex space-x-2">
         <button
           onClick={onCheckAccounts}
           disabled={isChecking || totalAccountsCount === 0}
           className="btn btn-secondary"
         >
-          {isChecking ? 'Checking...' : 'Check'}
+          {isChecking ? 'Проверка...' : 'Проверить'}
         </button>
         <button
           onClick={onSelectAll}
           disabled={!canSelectAll}
           className="btn"
         >
-          Select All
+          Выбрать все
         </button>
         <button
           onClick={onClearAll}
           disabled={!canClearAll}
           className="btn"
         >
-          Clear All
+          Очистить все
         </button>
       </div>
     </div>

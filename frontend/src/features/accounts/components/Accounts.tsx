@@ -47,11 +47,11 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
                 <Loader />
             ) : accounts.length === 0 ? (
                 <div className="empty-state">
-                    <p>No accounts found</p>
+                    <p>Аккаунты не найдены</p>
                 </div>
             ) : (
                 <>
-                    <h3 className="text-text-secondary text-lg mt-4 ">Кол-во аккаунтов: {accounts.length}</h3>
+                    <h3 className="text-text-secondary text-lg mt-4 ">Количество аккаунтов: {accounts.length}</h3>
 
                     {/* Список аккаунтов по провайдерам */}
                     <AccountsByProviderList

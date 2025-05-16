@@ -1,11 +1,11 @@
 import React, { FC } from 'react';
-import { account } from '../../../types/types';
+import { Account } from '../../../types/types';
 
 interface AccountItemProps {
-  account: account;
+  account: Account;
   isSelected: boolean;
   isChecked: boolean;
-  onToggleSelect: (account: account, isSelected: boolean) => void;
+  onToggleSelect: (account: Account, isSelected: boolean) => void;
 }
 
 export const AccountItem: FC<AccountItemProps> = ({
@@ -34,7 +34,7 @@ export const AccountItem: FC<AccountItemProps> = ({
               htmlFor={`select-${account.id}`}
               className="ml-2 text-[8px] text-text-secondary"
             >
-              Select
+              Выбрать
             </label>
           </div>
 

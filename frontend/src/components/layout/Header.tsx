@@ -6,7 +6,7 @@ export const Header: React.FC = () => {
     <header className="bg-gray-800 text-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">
-          Service Monitor
+          Монитор Сервисов
         </Link>
         {/* Placeholder for potential user info/logout */}
         <nav>
@@ -15,4 +15,4 @@ export const Header: React.FC = () => {
       </div>
     </header>
   );
-}; 
+};

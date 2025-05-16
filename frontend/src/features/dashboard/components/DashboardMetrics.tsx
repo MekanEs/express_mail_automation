@@ -5,15 +5,15 @@ export const DashboardMetrics: React.FC = () => {
   const { data, isLoading, error } = useDashboardMetrics();
 
   if (isLoading) {
-    return <div className="loading">Loading metrics...</div>;
+    return <div className="loading">Загрузка метрик...</div>;
   }
 
   if (error) {
-    return <div className="error">Error loading metrics: {error.message}</div>;
+    return <div className="error">Ошибка загрузки метрик: {error.message}</div>;
   }
 
   if (!data) {
-    return <div className="empty-state">No metrics available.</div>;
+    return <div className="empty-state">Нет доступных метрик.</div>;
   }
 
   const { summary, recentProcesses, accountsStats } = data;
@@ -22,25 +22,25 @@ export const DashboardMetrics: React.FC = () => {
     <div className="dashboard-metrics">
       <div className="metrics-summary grid grid-cols-4 gap-4 mb-6">
         <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Total Reports</h3>
+          <h3 className="text-gray-500 text-sm font-medium">Всего отчетов</h3>
           <p className="text-2xl font-bold mt-1">{summary.totalReports}</p>
         </div>
         <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Emails Found</h3>
+          <h3 className="text-gray-500 text-sm font-medium">Найдено писем</h3>
           <p className="text-2xl font-bold mt-1">{summary.totalEmailsFound}</p>
         </div>
         <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Emails Processed</h3>
+          <h3 className="text-gray-500 text-sm font-medium">Обработано писем</h3>
           <p className="text-2xl font-bold mt-1">{summary.totalEmailsProcessed}</p>
         </div>
         <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Success Rate</h3>
+          <h3 className="text-gray-500 text-sm font-medium">Успешность</h3>
           <p className="text-2xl font-bold mt-1">{summary.successRate}%</p>
         </div>
       </div>
 
       <div className="recent-processes mb-6">
-        <h2 className="text-xl font-semibold mb-4">Recent Processes</h2>
+        <h2 className="text-xl font-semibold mb-4">Недавние процессы</h2>
         {recentProcesses.length > 0 ? (
           <ul className="bg-white rounded-lg shadow overflow-hidden">
             {recentProcesses.map((process) => (
@@ -55,21 +55,21 @@ export const DashboardMetrics: React.FC = () => {
             ))}
           </ul>
         ) : (
-          <p className="text-gray-500">No recent processes</p>
+          <p className="text-gray-500">Нет недавних процессов</p>
         )}
       </div>
 
       <div className="accounts-stats">
-        <h2 className="text-xl font-semibold mb-4">Accounts Statistics</h2>
+        <h2 className="text-xl font-semibold mb-4">Статистика по аккаунтам</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white rounded-lg shadow overflow-hidden">
             <thead className="bg-gray-100">
               <tr>
-                <th className="py-3 px-4 text-left">Account</th>
-                <th className="py-3 px-4 text-right">Total</th>
-                <th className="py-3 px-4 text-right">Success</th>
-                <th className="py-3 px-4 text-right">Failure</th>
-                <th className="py-3 px-4 text-right">Partial</th>
+                <th className="py-3 px-4 text-left">Аккаунт</th>
+                <th className="py-3 px-4 text-right">Всего</th>
+                <th className="py-3 px-4 text-right">Успешно</th>
+                <th className="py-3 px-4 text-right">Ошибка</th>
+                <th className="py-3 px-4 text-right">Частично</th>
               </tr>
             </thead>
             <tbody>

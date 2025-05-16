@@ -1,62 +1,28 @@
-import { useState, useMemo, useEffect } from 'react';
-import { SelectableAccount, SelectableEmail } from '../../types/types';
-import { useAccounts } from '../../features/accounts/hooks/useAccountQueries';
-import { useSenders } from '../../features/emails/hooks/useSenderQueries';
+import { useProcessPageData } from './hooks/useProcessPageData';
 import Accounts from '../../features/accounts/components/Accounts';
 import { EmailList } from '../../features/emails/components/EmailList';
 import { ProcessForm } from '../../features/processes/components/ProcessForm';
 import LogsViewer from '../../features/logs/components/LogsViewer';
+import { useProcessSelections } from './hooks/useProcessSelections';
 
 export const NewProcessPage: React.FC = () => {
-    // Состояние для данных формы
-    const [selectedAccounts, setSelectedAccounts] = useState<SelectableAccount[]>([]);
-    const [selectedSenders, setSelectedSenders] = useState<SelectableEmail[]>([]);
+    const {
+        availableAccounts, isLoadingAccounts, isErrorAccounts, errorAccounts,
+        availableSenders, isLoadingSenders, isErrorSenders, errorSenders
+    } = useProcessPageData();
 
-    // Получаем доступные аккаунты с помощью хука
-    const { data: accountsData, isLoading: isLoadingAccounts, isError: isErrorAccounts, error: errorAccounts } = useAccounts();
-    const { data: sendersData, isLoading: isLoadingSenders, isError: isErrorSenders, error: errorSenders } = useSenders();
-
-    // Преобразуем полученные аккаунты в SelectableAccount[]
-    const availableAccounts: SelectableAccount[] = useMemo(() => {
-        if (!accountsData) return [];
-        return accountsData.map(acc => ({ ...acc, is_selected: false }));
-    }, [accountsData]);
-
-    // Transform fetched senders into SelectableEmail[]
-    const availableSenders: SelectableEmail[] = useMemo(() => {
-        if (!sendersData) return [];
-        // Map sender data to SelectableEmail, ensuring is_selected is initially false
-        return sendersData.map(sender => ({ ...sender, is_selected: false }));
-    }, [sendersData]);
-
-    // Сбрасываем выбор, если список доступных аккаунтов изменился (например, после refetch)
-    // Это предотвращает ситуацию, когда выбран аккаунт, которого больше нет в списке
-    useEffect(() => {
-        setSelectedAccounts(currentSelection =>
-            currentSelection.filter(selectedAcc =>
-                availableAccounts.some(availableAcc => availableAcc.id === selectedAcc.id)
-            )
-        );
-    }, [availableAccounts]);
-
-    // Reset sender selection if the list of available senders changes
-    useEffect(() => {
-        setSelectedSenders(currentSelection =>
-            currentSelection.filter(selectedSender =>
-                availableSenders.some(availableSender => availableSender.email === selectedSender.email)
-            )
-        );
-    }, [availableSenders]);
+    const { selectedAccounts, setSelectedAccounts, selectedSenders, setSelectedSenders } =
+        useProcessSelections(availableAccounts, availableSenders);
 
     return (
         <div className="mx-auto p-8">
             {(isLoadingAccounts || isLoadingSenders) && (
-                <div className="text-center p-4">Loading available accounts and senders...</div>
+                <div className="text-center p-4">Загрузка доступных аккаунтов и отправителей...</div>
             )}
             {(isErrorAccounts || isErrorSenders) && (
                 <div className="text-center p-4 text-red-600">
-                    {isErrorAccounts && `Error loading accounts: ${errorAccounts?.message || 'Unknown error'}`}
-                    {isErrorSenders && `Error loading senders: ${errorSenders?.message || 'Unknown error'}`}
+                    {isErrorAccounts && `Ошибка загрузки аккаунтов: ${errorAccounts?.message || 'Неизвестная ошибка'}`}
+                    {isErrorSenders && `Ошибка загрузки отправителей: ${errorSenders?.message || 'Неизвестная ошибка'}`}
                 </div>
             )}
             {!isLoadingAccounts && !isErrorAccounts && !isLoadingSenders && !isErrorSenders && (
@@ -67,12 +33,22 @@ export const NewProcessPage: React.FC = () => {
                         selected={selectedSenders}
                         toggleSelection={setSelectedSenders}
                     />
+
+
+                    <div className="my-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-700">
+                        <p className="font-semibold">Сводка по процессу:</p>
+                        <ul className="list-disc list-inside ml-4">
+                            <li>Выбрано аккаунтов: <strong>{selectedAccounts.length}</strong></li>
+                            <li>Выбрано отправителей: <strong>{selectedSenders.length}</strong></li>
+                        </ul>
+                    </div>
+
+
                     <ProcessForm
                         selectedAccounts={selectedAccounts}
                         selectedSenders={selectedSenders}
-
-
-                    /></div>
+                    />
+                </div>
             )}
             <div className='mt-4 p-2'>
                 <LogsViewer />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ProcessRequestBody, SelectableAccount, SelectableEmail } from '../../../types/types';
+import { ProcessRequestBody, SelectableAccount, SelectableEmail, Account } from '../../../types/types';
 import { useStartProcess } from './useProcessMutations';
 import toast from 'react-hot-toast';
 
@@ -9,43 +9,71 @@ interface UseProcessFormOptions {
   initialRepliesCount?: number;
 }
 
-export const useProcessForm = (options: UseProcessFormOptions = {}) => {
+interface FormErrors {
+  selectedAccounts?: string;
+  selectedSenders?: string;
+  limit?: string;
+  openRate?: string;
+  repliesCount?: string;
+}
+
+// Explicit return type for the hook
+interface UseProcessFormReturn {
+  limit: number;
+  setLimit: React.Dispatch<React.SetStateAction<number>>;
+  openRate: number;
+  setOpenRate: React.Dispatch<React.SetStateAction<number>>;
+  repliesCount: number;
+  setRepliesCount: React.Dispatch<React.SetStateAction<number>>;
+  handleSubmit: (
+    event: React.FormEvent<HTMLFormElement>,
+    selectedAccounts: SelectableAccount[],
+    selectedSenders: SelectableEmail[]
+  ) => void;
+  isPending: boolean;
+  formErrors: FormErrors;
+}
+
+export const useProcessForm = (options: UseProcessFormOptions = {}): UseProcessFormReturn => {
   // Начальные состояния с дефолтными значениями или переданными опциями
   const [limit, setLimit] = useState(options.initialLimit ?? 10);
   const [openRate, setOpenRate] = useState(options.initialOpenRate ?? 70);
   const [repliesCount, setRepliesCount] = useState(options.initialRepliesCount ?? 0);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   // Получаем мутацию запуска процесса
   const startProcessMutation = useStartProcess();
 
   // Валидация формы
-  const validateForm = (selectedAccounts: SelectableAccount[], selectedSenders: SelectableEmail[]): boolean => {
+  const validateForm = (
+    selectedAccounts: SelectableAccount[],
+    selectedSenders: SelectableEmail[],
+    currentLimit: number,
+    currentOpenRate: number,
+    currentRepliesCount: number
+  ): FormErrors => {
+    const errors: FormErrors = {};
     if (selectedAccounts.length === 0) {
-      toast.error('Please select at least one account.');
-      return false;
+      errors.selectedAccounts = 'Please select at least one account.';
     }
 
     if (selectedSenders.length === 0) {
-      toast.error('Please select at least one sender.');
-      return false;
+      errors.selectedSenders = 'Please select at least one sender.';
     }
 
-    if (limit < 1) {
-      toast.error('Limit must be at least 1.');
-      return false;
+    if (currentLimit < 1) {
+      errors.limit = 'Limit must be at least 1.';
     }
 
-    if (openRate < 0 || openRate > 100) {
-      toast.error('Open rate must be between 0 and 100.');
-      return false;
+    if (currentOpenRate < 0 || currentOpenRate > 100) {
+      errors.openRate = 'Open rate must be between 0 and 100.';
     }
 
-    if (repliesCount < 0) {
-      toast.error('Replies count cannot be negative.');
-      return false;
+    if (currentRepliesCount < 0) {
+      errors.repliesCount = 'Replies count cannot be negative.';
     }
 
-    return true;
+    return errors;
   };
 
   // Обработчик отправки формы
@@ -56,15 +84,16 @@ export const useProcessForm = (options: UseProcessFormOptions = {}) => {
   ) => {
     event.preventDefault();
 
-    if (!validateForm(selectedAccounts, selectedSenders)) {
+    const errors = validateForm(selectedAccounts, selectedSenders, limit, openRate, repliesCount);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please correct the errors in the form.');
       return;
     }
 
     const processData: ProcessRequestBody = {
-      // Удаляем is_selected из аккаунтов
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      accounts: selectedAccounts.map(({ is_selected, ...rest }) => rest),
-      // Фильтруем null email значения
+      accounts: selectedAccounts.map(({ is_selected: _is_selected, ...rest }): Account => rest),
       emails: selectedSenders
         .map((s) => s.email)
         .filter((email): email is string => email !== null),
@@ -85,6 +114,7 @@ export const useProcessForm = (options: UseProcessFormOptions = {}) => {
     repliesCount,
     setRepliesCount,
     handleSubmit,
-    isPending: startProcessMutation.isPending
+    isPending: startProcessMutation.isPending,
+    formErrors
   };
 };

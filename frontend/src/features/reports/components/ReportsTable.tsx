@@ -111,19 +111,19 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                         >
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-800">
-                                    Process ID:
+                                    ID Процесса:
                                     <span className="ml-2 font-mono">
                                         {processId}
                                     </span>
                                 </h3>
                                 {reports.length > 0 && (
                                     <p className="text-sm text-gray-500">
-                                        Latest activity: {formatDate(reports[0]?.created_at)}
+                                        Последняя активность: {formatDate(reports[0]?.created_at)}
                                     </p>
                                 )}
                             </div>
                             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                {reports.length} report(s) in this group
+                                {reports.length} отчет(ов) в этой группе
                             </span>
                         </div>
 
@@ -133,16 +133,16 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                 {reports.length > 0 ? (
                                     <thead className="bg-gray-50 sticky top-0 z-10">
                                         <tr className='divide-x divide-gray-100 *:px-4 *:py-3 *:text-left *:text-xs *:font-medium *:text-gray-500 *:uppercase *:tracking-wider *:cursor-pointer'>
-                                            <th scope="col" onClick={() => onSortChange('account')}>Account{renderSortArrow('account')}</th>
-                                            <th scope="col" onClick={() => onSortChange('sender')}>Sender{renderSortArrow('sender')}</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inbox</th>
-                                            <th scope="col" onClick={() => onSortChange('status')}>Status{renderSortArrow('status')}</th>
-                                            <th scope="col" onClick={() => onSortChange('emails_found')}>Found/Processed{renderSortArrow('emails_found')}</th>
-                                            <th scope="col" >Replies Sent</th>
-                                            <th scope="col" onClick={() => onSortChange('created_at')}>Date{renderSortArrow('created_at')}</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links Opened</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spam Found</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spam Moved</th>
+                                            <th scope="col" onClick={() => onSortChange('account')}>Аккаунт{renderSortArrow('account')}</th>
+                                            <th scope="col" onClick={() => onSortChange('sender')}>Отправитель{renderSortArrow('sender')}</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Входящие</th>
+                                            <th scope="col" onClick={() => onSortChange('status')}>Статус{renderSortArrow('status')}</th>
+                                            <th scope="col" onClick={() => onSortChange('emails_found')}>Найдено/Обработано{renderSortArrow('emails_found')}</th>
+                                            <th scope="col" >Отправлено ответов</th>
+                                            <th scope="col" onClick={() => onSortChange('created_at')}>Дата{renderSortArrow('created_at')}</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Открыто ссылок</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Найдено спама</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Перемещено спама</th>
                                         </tr>
                                     </thead>) : ''}
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -156,7 +156,7 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">No reports found for this process ID with current filters.</td>
+                                            <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">Отчеты для этого ID процесса с текущими фильтрами не найдены.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -169,7 +169,7 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                 className="btn btn-danger flex items-center justify-center px-4 py-2"
                             >
                                 {isDeleting && <span className="spinner-sm mr-2"></span>}
-                                {isDeleting ? 'Deleting...' : 'Delete'}
+                                {isDeleting ? 'Удаление...' : 'Удалить'}
                             </button>
                         </div>
                     </div>
@@ -179,10 +179,10 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
             {/* Confirm Delete Modal */}
             <ConfirmModal
                 isOpen={showDeleteConfirm}
-                title="Delete Report Group"
-                message="Are you sure you want to delete this report group? This action cannot be undone."
-                confirmText="Delete"
-                cancelText="Cancel"
+                title="Удалить группу отчетов"
+                message="Вы уверены, что хотите удалить эту группу отчетов? Это действие нельзя будет отменить."
+                confirmText="Удалить"
+                cancelText="Отмена"
                 onConfirm={handleConfirmDelete}
                 onCancel={handleCancelDelete}
                 isConfirmLoading={isDeleting}

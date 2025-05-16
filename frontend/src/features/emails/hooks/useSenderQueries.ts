@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getEmails } from '../api'; // Changed from getFromEmails and path adjusted
-import { from_email } from '../../../types/types';
+import { FromEmail } from '../../../types/types'; // Changed to FromEmail
 
 /**
  * Хук для получения списка email адресов отправителей (теперь используется getEmails).
@@ -9,7 +9,7 @@ import { from_email } from '../../../types/types';
 export const useSenders = (options?: {
   staleTime?: number;
 }) => {
-  return useQuery<from_email[], Error>({
+  return useQuery<FromEmail[], Error>({
     queryKey: ['emails'], // Changed queryKey to 'emails' for consistency with getEmails
     queryFn: getEmails,    // Changed to getEmails
     staleTime: options?.staleTime ?? 1000 * 60 * 15,

@@ -14,34 +14,34 @@ export const SenderAggregatesTable: React.FC = () => {
   } = useSenderAggregates();
 
   if (isLoading) {
-    return <div className="loading">Loading data...</div>;
+    return <div className="loading">Загрузка данных...</div>;
   }
 
   if (error) {
-    return <div className="error">Error loading data: {error.message}</div>;
+    return <div className="error">Ошибка загрузки данных: {error.message}</div>;
   }
 
   if (!Array.isArray(data) || data.length === 0) {
-    return <div className="empty-state">No data available.</div>;
+    return <div className="empty-state">Нет данных.</div>;
   }
 
   return (
     <div className="sender-aggregates-table mt-5">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Sender Statistics</h2>
+        <h2 className="text-xl font-semibold">Статистика по отправителям</h2>
         <div className="flex space-x-2">
           <button
             className="btn btn-primary"
             onClick={toggleView}
           >
-            {showArchive ? "Show Current Data" : "Show Archive"}
+            {showArchive ? "Показать текущие данные" : "Показать архив"}
           </button>
           <button
             className="btn"
             onClick={handleArchive}
             disabled={isArchiving}
           >
-            {isArchiving ? 'Archiving...' : 'Archive Data'}
+            {isArchiving ? 'Архивация...' : 'Архивировать данные'}
           </button>
         </div>
       </div>
@@ -50,12 +50,12 @@ export const SenderAggregatesTable: React.FC = () => {
         <table className="min-w-full bg-white rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
             <tr>
-              <th className="py-3 px-4 text-left">Sender</th>
-              <th className="py-3 px-4 text-right">Emails Processed</th>
-              <th className="py-3 px-4 text-right">Links Attempted/Opened</th>
-              <th className="py-3 px-4 text-right">Total Replies Sent</th>
-              <th className="py-3 px-4 text-right">Reports</th>
-              <th className="py-3 px-4 text-right">Spam Found/Moved</th>
+              <th className="py-3 px-4 text-left">Отправитель</th>
+              <th className="py-3 px-4 text-right">Обработано писем</th>
+              <th className="py-3 px-4 text-right">Попыток открытия/открыто ссылок</th>
+              <th className="py-3 px-4 text-right">Всего отправлено ответов</th>
+              <th className="py-3 px-4 text-right">Отчеты</th>
+              <th className="py-3 px-4 text-right">Найдено/перемещено спама</th>
             </tr>
           </thead>
           <tbody>

@@ -20,11 +20,11 @@ const ReportGroupSkeleton = () => (
         <div className="overflow-x-auto">
             <div className="h-8 bg-gray-300 rounded mb-2"></div> {/* Skeleton for table header */}
             {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-10 bg-gray-200 rounded mb-1"></div> /* Skeleton for table row */
+                <div key={i} className="h-10 bg-gray-200 rounded mb-1"></div> /* Скелет для строки таблицы */
             ))}
         </div>
         <div className="flex justify-end mt-2">
-            <div className="h-9 bg-gray-300 rounded w-24"></div> {/* Skeleton for delete button */}
+            <div className="h-9 bg-gray-300 rounded w-24"></div> {/* Скелет для кнопки удаления */}
         </div>
     </div>
 );
@@ -57,7 +57,7 @@ export const ReportsPage = () => {
     const [showDeleteEmptyConfirm, setShowDeleteEmptyConfirm] = useState(false);
 
     const renderLoadingState = () => {
-        if (isFetching && !isLoading) return <div className='text-sm text-gray-500 p-2'>Fetching updates...</div>; // Or a more subtle loading indicator
+        if (isFetching && !isLoading) return <div className='text-sm text-gray-500 p-2'>Получение обновлений...</div>; // Или более тонкий индикатор загрузки
         return (
             <div className="space-y-6">
                 <ReportGroupSkeleton />
@@ -90,7 +90,7 @@ export const ReportsPage = () => {
 
     return (
         <div>
-            <h2 className="text-2xl font-semibold mb-4">Reports</h2>
+            <h2 className="text-2xl font-semibold mb-4">Отчеты</h2>
 
             <div className="mb-6 p-4 bg-white rounded shadow-md space-y-4">
                 <ReportsFilterPanel
@@ -106,13 +106,13 @@ export const ReportsPage = () => {
                             disabled={isFetching}
                         >
                             {isFetching && <span className="spinner-sm mr-2"></span>}
-                            {isFetching ? 'Refreshing...' : 'Refresh Reports'}
+                            {isFetching ? 'Обновление...' : 'Обновить отчеты'}
                         </button>
                         <button
                             onClick={toggleOnlyFound}
                             className="btn btn-secondary"
                         >
-                            {onlyFound ? 'All' : 'Only with Found Emails'}
+                            {onlyFound ? 'Все' : 'Только с найденными письмами'}
                         </button>
                         <button
                             onClick={() => setShowDeleteEmptyConfirm(true)}
@@ -120,7 +120,7 @@ export const ReportsPage = () => {
                             className="btn btn-warning ml-2 flex items-center"
                         >
                             {isDeletingEmpty && <span className="spinner-sm mr-2"></span>}
-                            {isDeletingEmpty ? 'Deleting Empty...' : 'Delete Empty Reports'}
+                            {isDeletingEmpty ? 'Удаление пустых...' : 'Удалить пустые отчеты'}
                         </button>
                     </div>
                 </div>
@@ -128,14 +128,14 @@ export const ReportsPage = () => {
 
             {activeFilters.length > 0 && (
                 <div className="mb-4 p-3 bg-gray-100 rounded-md flex items-center flex-wrap gap-2">
-                    <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+                    <span className="text-sm font-medium text-gray-700">Активные фильтры:</span>
                     {activeFilters.map(({ key, value }) => (
                         <span key={key} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
                             {key.replace('filter_', '').replace('_', ' ')}: {String(value)}
                             <button
                                 onClick={() => handleClearFilter(key)}
                                 className="ml-2 text-blue-700 hover:text-blue-900"
-                                aria-label={`Clear filter for ${key}`}
+                                aria-label={`Очистить фильтр для ${key}`}
                             >
                                 &times;
                             </button>
@@ -145,19 +145,19 @@ export const ReportsPage = () => {
                         onClick={handleClearAllFilters}
                         className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline"
                     >
-                        Clear All Filters
+                        Очистить все фильтры
                     </button>
                 </div>
             )}
 
-            {isError && <div className="text-center p-4 text-red-600">Error loading reports: {error instanceof Error ? error.message : String(error)}</div>}
+            {isError && <div className="text-center p-4 text-red-600">Ошибка загрузки отчетов: {error instanceof Error ? error.message : String(error)}</div>}
 
             {isLoading ? renderLoadingState() :
                 !isError && (
                     <>
                         {!hasReports && displayData.length === 0 ? (
                             <div className="text-center p-4 bg-white rounded shadow">
-                                No reports found matching your criteria.
+                                Отчеты, соответствующие вашим критериям, не найдены.
                             </div>
                         ) : (
                             <ReportsTable
@@ -186,10 +186,10 @@ export const ReportsPage = () => {
             {/* Confirm Delete Empty Reports Modal */}
             <ConfirmModal
                 isOpen={showDeleteEmptyConfirm}
-                title="Delete Empty Reports"
-                message="Are you sure you want to delete all empty reports? This action cannot be undone."
-                confirmText="Delete"
-                cancelText="Cancel"
+                title="Удалить пустые отчеты"
+                message="Вы уверены, что хотите удалить все пустые отчеты? Это действие нельзя будет отменить."
+                confirmText="Удалить"
+                cancelText="Отмена"
                 onConfirm={handleDeleteEmptyConfirm}
                 onCancel={() => setShowDeleteEmptyConfirm(false)}
                 isConfirmLoading={isDeletingEmpty}
