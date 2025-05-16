@@ -38,6 +38,9 @@ export interface GetReportsParams {
     filter_process_id?: string;
 }
 
+// Type for filters used on the Reports page, excluding pagination and sorting
+export type ReportPageFilters = Omit<GetReportsParams, 'page' | 'limit' | 'sort_by' | 'sort_order'>;
+
 // Группа отчетов (возвращается бэкендом)
 export interface ReportGroup {
     processId: string;

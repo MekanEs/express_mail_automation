@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { deleteReports, archiveSenderAggregates, DeleteReportsParams } from "../api"; // Import API functions and types
+import { deleteReports, archiveSenderAggregates, DeleteReportsParams, deleteEmptyReports } from "../api"; // Import API functions and types
 
 export const useDeleteReports = () => {
   const queryClient = useQueryClient();
@@ -16,6 +16,22 @@ export const useDeleteReports = () => {
     },
   });
   return { deleteReports: runDeleteReports, isDeleting };
+};
+
+export const useDeleteEmptyReports = () => {
+  const queryClient = useQueryClient();
+  const { mutate: runDeleteEmptyReports, isPending: isDeleting } = useMutation<void, Error, void>({
+    mutationFn: deleteEmptyReports,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      toast.success('Empty reports deleted successfully.');
+    },
+    onError: (error) => {
+      console.error("Error deleting empty reports:", error);
+      toast.error(`Failed to delete empty reports: ${error.message}`);
+    },
+  });
+  return { deleteEmptyReports: runDeleteEmptyReports, isDeleting };
 };
 
 export const useArchiveSenderAggregates = () => {

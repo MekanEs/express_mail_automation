@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Provider, SelectableAccount } from '../../../types/types';
 import { AccountItem } from './AccountItem';
 import { account } from '../../../types/types';

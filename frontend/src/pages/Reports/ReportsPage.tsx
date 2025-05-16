@@ -1,168 +1,199 @@
-import { useQuery, } from "@tanstack/react-query";
-import { useState, useMemo, useCallback } from "react";
-import { getReports } from "../../features/reports/api";
-import { useDeleteReports } from "../../features/reports/hooks/useReportMutations";
-import { Report, ReportGroup, GetReportsParams, PaginatedReportsResponse, Pagination } from "../../types/types";
+import { useState } from "react";
+import { useDeleteReports, useDeleteEmptyReports } from "../../features/reports/hooks/useReportMutations";
+import { ReportPageFilters } from "../../types/types";
 import { PaginationComponent } from "../../components/common/Pagination";
-import { ReportsTable } from "../../components/reports/ReportsTable";
-import { ReportsFilterPanel } from "../../components/reports/ReportsFilterPanel";
+import { ReportsTable } from "../../features/reports/components/ReportsTable";
+import { ReportsFilterPanel } from "../../features/reports/components/ReportsFilterPanel";
+import { useReports } from "../../features/reports/hooks/useReports";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
 
-
-
-
-// Начальные данные для пагинации, чтобы избежать undefined
-const initialPagination: Pagination = { page: 1, limit: 10, total: 0, pages: 0 };
-const initialResponse: PaginatedReportsResponse = { data: [], pagination: initialPagination };
-
-// Тип для фильтров, управляемых панелью
-type ReportFiltersState = Omit<GetReportsParams, 'page' | 'limit' | 'sort_by' | 'sort_order'>;
+// Skeleton component for a single report group
+const ReportGroupSkeleton = () => (
+    <div className="bg-white rounded-lg p-4 shadow-md animate-pulse">
+        <div className="flex justify-between items-center mb-3 border-b pb-2">
+            <div>
+                <div className="h-6 bg-gray-300 rounded w-3/4 mb-1"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+            </div>
+            <div className="h-6 bg-gray-300 rounded-full w-20"></div>
+        </div>
+        <div className="overflow-x-auto">
+            <div className="h-8 bg-gray-300 rounded mb-2"></div> {/* Skeleton for table header */}
+            {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-10 bg-gray-200 rounded mb-1"></div> /* Skeleton for table row */
+            ))}
+        </div>
+        <div className="flex justify-end mt-2">
+            <div className="h-9 bg-gray-300 rounded w-24"></div> {/* Skeleton for delete button */}
+        </div>
+    </div>
+);
 
 export const ReportsPage = () => {
-    // Состояние
-    const [currentPage, setCurrentPage] = useState(1);
-    const [limit] = useState(10);
-    const [filters, setFilters] = useState<ReportFiltersState>({});
-    const [sortBy, setSortBy] = useState<string>('created_at');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [onlyFound, setOnlyFound] = useState(true);
-
-    const { deleteReports, isDeleting } = useDeleteReports();
-    // Параметры запроса
-    const queryParams: GetReportsParams = useMemo(() => ({
-        page: currentPage,
-        limit,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-        ...filters,
-    }), [currentPage, limit, sortBy, sortOrder, filters]);
-
-    // Запрос данных
     const {
-        data: response = initialResponse,
         isLoading,
         isError,
         error,
+        isFetching,
+        filters,
+        sortBy,
+        sortOrder,
+        onlyFound,
+        currentPage,
+        displayData,
+        pagination,
+        hasReports,
         refetch,
-        isFetching
-    } = useQuery<PaginatedReportsResponse, Error>({
-        queryKey: ['reports', queryParams],
-        queryFn: () => getReports(queryParams),
-        placeholderData: (previousData) => previousData,
-    });
+        toggleOnlyFound,
+        setCurrentPage,
+        handleFilterChange,
+        handleSortChange,
+        setFilters,
+    } = useReports();
 
+    const { deleteReports, isDeleting } = useDeleteReports();
+    const { deleteEmptyReports, isDeleting: isDeletingEmpty } = useDeleteEmptyReports();
 
+    const [showDeleteEmptyConfirm, setShowDeleteEmptyConfirm] = useState(false);
 
-    // Локальная фильтрация
-    const displayData: ReportGroup[] = useMemo(() => {
-        if (!onlyFound || !response?.data) return response?.data ?? []; // Добавлена проверка на response.data
+    const renderLoadingState = () => {
+        if (isFetching && !isLoading) return <div className='text-sm text-gray-500 p-2'>Fetching updates...</div>; // Or a more subtle loading indicator
+        return (
+            <div className="space-y-6">
+                <ReportGroupSkeleton />
+                <ReportGroupSkeleton />
+            </div>
+        );
+    };
 
-        return response.data
-            .map((group: ReportGroup) => ({
-                ...group,
-                reports: group.reports.filter((item: Report) => item.emails_found != null && item.emails_found > 0),
-            }))
-
-    }, [response?.data, onlyFound]);
-
-    // Обработчики
-    const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({
+    const handleClearFilter = (filterName: keyof ReportPageFilters) => {
+        setFilters((prev: ReportPageFilters) => ({
             ...prev,
-            [name]: value || undefined
+            [filterName]: undefined
         }));
         setCurrentPage(1);
-    }, []);
+    };
 
-    const handleSortChange = useCallback((newSortBy: string) => {
-        // setSortBy(prevSortBy => {
-        //     if (prevSortBy === newSortBy) {
-        //         setSortOrder(prev => {
-        //             console.log(prev)
-        //             return prev === 'asc' ? 'desc' : 'asc'
-        //         })
-        //     }
-        //     return newSortBy;
-        // });
-        if (newSortBy === sortBy) {
-            setSortOrder(prev => {
-                console.log(prev)
-                return prev === 'asc' ? 'desc' : 'asc'
-            })
-        } else {
-            setSortBy(newSortBy)
-        }
+    const handleClearAllFilters = () => {
+        setFilters({});
         setCurrentPage(1);
-    }, [sortBy]);
+    };
 
-    // Рендеринг
+    const handleDeleteEmptyConfirm = () => {
+        deleteEmptyReports();
+        setShowDeleteEmptyConfirm(false);
+    };
+
+    const activeFilters = Object.entries(filters)
+        .filter(([, value]) => value !== undefined && value !== '')
+        .map(([key, value]) => ({ key: key as keyof ReportPageFilters, value }));
+
     return (
         <div>
             <h2 className="text-2xl font-semibold mb-4">Reports</h2>
 
-            {/* Панель управления: Фильтры вынесены, кнопки остались */}
             <div className="mb-6 p-4 bg-white rounded shadow-md space-y-4">
-                {/* Используем компонент панели фильтров */}
                 <ReportsFilterPanel
                     filters={filters}
                     onFilterChange={handleFilterChange}
                 />
 
                 <div className="flex flex-wrap justify-between items-center gap-4 border-t pt-4 mt-4">
-                    {/* Кнопки действий */}
                     <div className="flex space-x-2">
                         <button
                             onClick={() => refetch()}
-                            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                            className="btn btn-primary flex items-center"
                             disabled={isFetching}
                         >
+                            {isFetching && <span className="spinner-sm mr-2"></span>}
                             {isFetching ? 'Refreshing...' : 'Refresh Reports'}
                         </button>
                         <button
-                            onClick={() => setOnlyFound(prev => !prev)}
-                            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            onClick={toggleOnlyFound}
+                            className="btn btn-secondary"
                         >
                             {onlyFound ? 'All' : 'Only with Found Emails'}
                         </button>
+                        <button
+                            onClick={() => setShowDeleteEmptyConfirm(true)}
+                            disabled={isDeletingEmpty}
+                            className="btn btn-warning ml-2 flex items-center"
+                        >
+                            {isDeletingEmpty && <span className="spinner-sm mr-2"></span>}
+                            {isDeletingEmpty ? 'Deleting Empty...' : 'Delete Empty Reports'}
+                        </button>
                     </div>
-                    {/* Кнопки экспорта */}
-
                 </div>
             </div>
 
-            {/* Отображение данных или состояний загрузки/ошибки */}
-            {isLoading && <div className="text-center p-4">Loading reports...</div>}
+            {activeFilters.length > 0 && (
+                <div className="mb-4 p-3 bg-gray-100 rounded-md flex items-center flex-wrap gap-2">
+                    <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+                    {activeFilters.map(({ key, value }) => (
+                        <span key={key} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
+                            {key.replace('filter_', '').replace('_', ' ')}: {String(value)}
+                            <button
+                                onClick={() => handleClearFilter(key)}
+                                className="ml-2 text-blue-700 hover:text-blue-900"
+                                aria-label={`Clear filter for ${key}`}
+                            >
+                                &times;
+                            </button>
+                        </span>
+                    ))}
+                    <button
+                        onClick={handleClearAllFilters}
+                        className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                        Clear All Filters
+                    </button>
+                </div>
+            )}
+
             {isError && <div className="text-center p-4 text-red-600">Error loading reports: {error instanceof Error ? error.message : String(error)}</div>}
 
-            {!isLoading && !isError && (
-                <>
-                    {displayData.length === 0 ? (
-                        <div className="text-center p-4 bg-white rounded shadow">
-                            No reports found matching your criteria.
-                        </div>
-                    ) : (
-                        <ReportsTable
-                            isDeleting={isDeleting}
-                            deleteReports={deleteReports}
-                            reportGroups={displayData}
-                            sortBy={sortBy}
-                            sortOrder={sortOrder}
-                            onSortChange={handleSortChange}
-                        />
-                    )}
+            {isLoading ? renderLoadingState() :
+                !isError && (
+                    <>
+                        {!hasReports && displayData.length === 0 ? (
+                            <div className="text-center p-4 bg-white rounded shadow">
+                                No reports found matching your criteria.
+                            </div>
+                        ) : (
+                            <ReportsTable
+                                isDeleting={isDeleting}
+                                deleteReports={deleteReports}
+                                reportGroups={displayData}
+                                sortBy={sortBy}
+                                sortOrder={sortOrder}
+                                onSortChange={handleSortChange}
+                            />
+                        )}
 
-                    {/* Пагинация */}
-                    {response?.pagination && response.pagination.pages > 1 && (
-                        <PaginationComponent
-                            currentPage={response.pagination.page}
-                            totalPages={response.pagination.pages}
-                            totalItems={response.pagination.total}
-                            itemsPerPage={response.pagination.limit}
-                            onPageChange={setCurrentPage}
-                        />
-                    )}
-                </>
-            )}
+                        {pagination && pagination.pages > 1 && (
+                            <PaginationComponent
+                                currentPage={currentPage}
+                                totalPages={pagination.pages}
+                                totalItems={pagination.total}
+                                itemsPerPage={pagination.limit}
+                                onPageChange={setCurrentPage}
+                            />
+                        )}
+                    </>
+                )
+            }
+
+            {/* Confirm Delete Empty Reports Modal */}
+            <ConfirmModal
+                isOpen={showDeleteEmptyConfirm}
+                title="Delete Empty Reports"
+                message="Are you sure you want to delete all empty reports? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={handleDeleteEmptyConfirm}
+                onCancel={() => setShowDeleteEmptyConfirm(false)}
+                isConfirmLoading={isDeletingEmpty}
+            />
         </div>
     );
 };

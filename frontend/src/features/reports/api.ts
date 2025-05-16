@@ -58,6 +58,25 @@ export const deleteReports = async (
   return; // Or handle as per actual API behavior
 };
 
+export const deleteEmptyReports = async (): Promise<void> => {
+  const url = `${API_URL}/reports/delete-empty`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      message: `Failed to delete empty reports: ${response.statusText}`
+    }));
+    throw new Error(errorData.message || `Failed to delete empty reports: ${response.statusText}`);
+  }
+
+  return;
+};
+
 export const archiveSenderAggregates = async (): Promise<{ message: string, count?: number }> => {
   const response = await fetch(`${BASE_API}/admin/archive-sender-aggregates`, {
     method: 'POST',

@@ -109,5 +109,30 @@ class ReportsController {
     }
     response.status(200).send({ message: 'Reports deleted successfully' });
   }
+
+  public async deleteEmptyReports(req: Request, response: Response): Promise<void> {
+    try {
+      // Удаляем отчеты где emails_found равно 0 или null
+      const { error } = await supabaseClient
+        .from('reports')
+        .delete()
+        .or('emails_found.is.null,emails_found.eq.0');
+
+      if (error) {
+        console.error('Error deleting empty reports:', error);
+        response.status(500).send({ error: error.message });
+        return;
+      }
+
+      response.status(200).send({
+        message: 'Empty reports deleted successfully'
+      });
+    } catch (err) {
+      console.error('Unexpected error when deleting empty reports:', err);
+      response.status(500).send({
+        error: err instanceof Error ? err.message : 'Unknown error occurred'
+      });
+    }
+  }
 }
 export const reportsController = new ReportsController();

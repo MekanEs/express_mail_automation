@@ -1,12 +1,12 @@
 import React from 'react';
-import { GetReportsParams } from '../../types/types';
+import { ReportPageFilters } from '../../../types/types';
 
 // Определяем тип для фильтров, которые мы передаем
 // Исключаем параметры пагинации и сортировки, так как они управляются в ReportsPage
-type ReportFilters = Omit<GetReportsParams, 'page' | 'limit' | 'sort_by' | 'sort_order'>;
+// type ReportFilters = Omit<GetReportsParams, 'page' | 'limit' | 'sort_by' | 'sort_order'>;
 
 interface ReportsFilterPanelProps {
-    filters: ReportFilters;
+    filters: ReportPageFilters;
     onFilterChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     // Можно добавить другие пропсы, если панель станет сложнее
 }
@@ -34,7 +34,7 @@ export const ReportsFilterPanel: React.FC<ReportsFilterPanelProps> = ({
                     <option value="in_progress">In Progress</option>
                 </select>
             </div>
-            
+
             {/* Фильтр по аккаунту */}
             <div>
                 <label htmlFor="filter_account" className="block text-sm font-medium text-gray-700">Account</label>
@@ -64,4 +64,4 @@ export const ReportsFilterPanel: React.FC<ReportsFilterPanelProps> = ({
             </div>
         </div>
     );
-}; 
+};

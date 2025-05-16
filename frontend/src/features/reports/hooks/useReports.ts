@@ -1,68 +1,124 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
-import { Report } from "../../../types/types";
+import { useState, useMemo, useCallback } from "react";
 import { getReports } from "../api";
+import {
+  Report,
+  ReportGroup,
+  GetReportsParams,
+  PaginatedReportsResponse,
+  Pagination,
+  ReportPageFilters
+} from "../../../types/types";
 import { useDeleteReports } from "./useReportMutations";
 
+const initialPagination: Pagination = { page: 1, limit: 10, total: 0, pages: 0 };
+const initialResponse: PaginatedReportsResponse = { data: [], pagination: initialPagination };
+
 interface UseReportsOptions {
+  initialLimit?: number;
+  initialSortBy?: string;
+  initialSortOrder?: 'asc' | 'desc';
   initialOnlyFound?: boolean;
 }
 
 export const useReports = (options: UseReportsOptions = {}) => {
-  // Состояние для фильтрации отображаемых отчетов
-  const [onlyFound, setOnlyFound] = useState(options.initialOnlyFound ?? true);
-
-  // Запрос для получения отчетов
   const {
-    data: groupedReports = {} as Record<string, Report[]>,
-    isFetching,
-    refetch
-  } = useQuery<Record<string, Report[]>, Error, Record<string, Report[]>>({
-    queryKey: ['reports'],
-    queryFn: async () => {
-      const response = await getReports();
-      // Группировка отчетов по processId
-      return response.data.reduce((acc: Record<string, Report[]>, group) => {
-        if (!acc[group.processId]) {
-          acc[group.processId] = [];
-        }
-        acc[group.processId].push(...group.reports);
-        return acc;
-      }, {} as Record<string, Report[]>);
-    }
+    initialLimit = 10,
+    initialSortBy = 'created_at',
+    initialSortOrder = 'desc',
+    initialOnlyFound = true
+  } = options;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(initialLimit);
+  const [filters, setFilters] = useState<ReportPageFilters>({});
+  const [sortBy, setSortBy] = useState<string>(initialSortBy);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(initialSortOrder);
+  const [onlyFound, setOnlyFound] = useState(initialOnlyFound);
+
+  const queryParams: GetReportsParams = useMemo(() => ({
+    page: currentPage,
+    limit,
+    sort_by: sortBy,
+    sort_order: sortOrder,
+    ...filters,
+  }), [currentPage, limit, sortBy, sortOrder, filters]);
+
+  const {
+    data: response = initialResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching
+  } = useQuery<PaginatedReportsResponse, Error>({
+    queryKey: ['reports', queryParams],
+    queryFn: () => getReports(queryParams),
+    placeholderData: (previousData) => previousData,
   });
+
+  const displayData: ReportGroup[] = useMemo(() => {
+    if (!response?.data) return [];
+    if (!onlyFound) return response.data;
+
+    return response.data
+      .map((group: ReportGroup) => ({
+        ...group,
+        reports: group.reports.filter((item: Report) => item.emails_found != null && item.emails_found > 0),
+      }))
+      .filter(group => group.reports.length > 0);
+  }, [response?.data, onlyFound]);
+
+  const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value || undefined
+    }));
+    setCurrentPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((newSortBy: string) => {
+    if (newSortBy === sortBy) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1);
+  }, [sortBy, setSortBy, setSortOrder, setCurrentPage]);
+
+  const toggleOnlyFound = useCallback(() => {
+    setOnlyFound(prev => !prev);
+  }, []);
+
+  const pagination = response?.pagination ?? initialPagination;
+  const hasReports = response && response.data && response.data.length > 0;
 
   // Мутация для удаления отчетов
   const { deleteReports, isDeleting } = useDeleteReports();
 
-  // Проверка наличия отчетов
-  const hasReports = groupedReports && Object.keys(groupedReports).length > 0;
-
-  // Фильтрация отчетов по критерию наличия найденных писем
-  const filteredReportEntries = useMemo(() => {
-    return Object.entries(groupedReports)
-      .map(([processId, items]: [string, Report[]]): [string, Report[]] => {
-        const filteredItems = onlyFound
-          ? items.filter(item => item.emails_found != null && item.emails_found > 0)
-          : items;
-        return [processId, filteredItems];
-      })
-      .filter(([, filteredItems]: [string, Report[]]) => filteredItems.length > 0);
-  }, [groupedReports, onlyFound]);
-
-  // Переключение фильтра "только с найденными письмами"
-  const toggleOnlyFound = () => {
-    setOnlyFound(prev => !prev);
-  };
-
   return {
-    filteredReportEntries,
-    hasReports,
+    isLoading,
+    isError,
+    error,
     isFetching,
-    isDeleting,
+    filters,
+    setFilters,
+    sortBy,
+    sortOrder,
     onlyFound,
-    deleteReports,
+    currentPage,
+    limit,
+    displayData,
+    pagination,
+    hasReports,
     refetch,
-    toggleOnlyFound
+    toggleOnlyFound,
+    setCurrentPage,
+    handleFilterChange,
+    handleSortChange,
+    isDeleting,
+    deleteReports
   };
 };
