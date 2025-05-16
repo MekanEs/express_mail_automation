@@ -19,6 +19,7 @@ import { FetchMessageObject, ImapFlow } from 'imapflow';
 
 export interface IAccountProcessingService {
   processAccountFromSender(params: AccountProcessingParams): Promise<BrowserTask[]>;
+  finalizeAccountProcessing(userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void>;
 }
 
 @injectable()
@@ -33,7 +34,7 @@ export class AccountProcessingService implements IAccountProcessingService {
     @inject(TYPES.MailboxDiscoveryService) private readonly mailboxDiscoveryService: IMailboxDiscoveryService,
     @inject(TYPES.FileSystemService) private readonly fileSystemService: IFileSystemService
   ) { }
-
+  private client: ImapFlow | null = null;
   private async _initializeImapConnection(account: Account, providerConfig: ProviderConfig): Promise<ImapFlow | null> {
     const userEmail = account.email;
     logger.info(`[AccountProcessing] Initializing IMAP connection for: ${userEmail}`);
@@ -48,6 +49,7 @@ export class AccountProcessingService implements IAccountProcessingService {
       logger.error(`[AccountProcessing] Failed to connect to IMAP for ${userEmail}.`);
       return null;
     }
+    this.client = client
     return client;
   }
 
@@ -195,11 +197,15 @@ export class AccountProcessingService implements IAccountProcessingService {
     return { browserTasks, finalRemainingReplies: currentRemainingReplies };
   }
 
-  private async _finalizeAccountProcessing(client: ImapFlow, userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
+  public async finalizeAccountProcessing(userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
     this.reportService.finalizeReportStatus(report);
+    logger.info(report)
     await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
-    await this.imapClientService.disconnectClient(client, userEmail);
-    logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`);
+    if (this.client) {
+      await this.imapClientService.disconnectClient(this.client, userEmail);
+      logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`);
+    }
+
   }
 
   private async _manageReplies(
@@ -287,13 +293,10 @@ export class AccountProcessingService implements IAccountProcessingService {
       );
       allBrowserTasks.push(...browserTasks);
       overallRemainingReplies = finalRemainingReplies;
-      if (overallRemainingReplies <= 0 && config.repliesCount > 0) {
-        logger.info(`[AccountProcessing] Достигнут лимит ответов (${config.repliesCount}), прекращение обработки почтовых ящиков.`);
-        break;
-      }
+
     }
 
-    await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail);
+    // await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail);
     return allBrowserTasks;
   }
 }

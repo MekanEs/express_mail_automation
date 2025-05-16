@@ -1,4 +1,4 @@
-import { StartProcessingParams, AccountProcessingParams } from '../../types/types';
+import { StartProcessingParams, AccountProcessingParams, } from '../../types/types';
 import { getConfig } from '../../utils/getConfig';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
@@ -77,6 +77,7 @@ export class ProcessOrchestrationService implements IProcessOrchestrationService
         } else {
           logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Нет задач для обработки в браузере или браузер недоступен.`);
         }
+        await this.accountProcessingService.finalizeAccountProcessing(account.email, report, providerConfig, emails.join(', '))
       }
 
     }

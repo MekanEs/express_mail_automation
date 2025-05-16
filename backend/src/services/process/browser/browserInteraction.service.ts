@@ -11,6 +11,7 @@ import "reflect-metadata";
 import { TYPES } from '../../../common/types.di';
 import { IFileSystemService } from '../utils/fileSystem.service';
 import { IReportService } from '../utils/report.service'; // Assuming this will be created
+import { IImapClientService } from '../client/imapClient.service';
 
 puppeteer.use(StealthPlugin());
 
@@ -38,6 +39,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
   private readonly reportService: IReportService; // Assuming IReportService
 
   constructor(
+    @inject(TYPES.ImapClientService) private readonly imapClientService: IImapClientService,
     @inject(TYPES.FileSystemService) fileSystemService: IFileSystemService,
     @inject(TYPES.ReportService) reportService: IReportService // Assuming TYPES.ReportService
   ) {
