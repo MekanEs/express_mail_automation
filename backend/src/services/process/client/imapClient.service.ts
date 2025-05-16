@@ -2,8 +2,20 @@ import { ImapFlow, MailboxLockObject } from 'imapflow';
 import { createImapConfig } from '../../../utils/createConfig';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
+import { injectable } from 'inversify';
+import "reflect-metadata";
 
-export class ImapClientService {
+export interface IImapClientService {
+  createImapClient(user: string, host: string, password?: string, token?: string): ImapFlow;
+  connectClient(client: ImapFlow, userEmail: string): Promise<boolean>;
+  disconnectClient(client: ImapFlow, userEmail: string): Promise<void>;
+  getMailboxLock(client: ImapFlow, mailboxPath: string): Promise<MailboxLockObject | null>;
+  releaseMailboxLock(lock: MailboxLockObject, mailboxPath: string): Promise<void>;
+  listMailboxes(client: ImapFlow): Promise<ReturnType<ImapFlow['list']>>;
+}
+
+@injectable()
+export class ImapClientService implements IImapClientService {
   public createImapClient(user: string, host: string, password?: string, token?: string): ImapFlow {
     const config = createImapConfig({ user, host, password, token, log: false });
     logger.info(`[IMAP Client] Создана конфигурация IMAP для пользователя ${user}`);
@@ -31,7 +43,6 @@ export class ImapClientService {
       }
     } catch (logoutErr) {
       logger.error(`[IMAP Client] Ошибка при выходе из IMAP клиента для ${userEmail}:`, logoutErr);
-      // Можно пробросить ошибку дальше, если это критично
     }
   }
 
@@ -52,7 +63,6 @@ export class ImapClientService {
       await lock.release();
       logger.info(`[IMAP Client] Блокировка с ящика ${mailboxPath} снята.`);
     } catch (releaseErr) {
-      // Ошибки при снятии блокировки обычно не критичны для основного потока, но их нужно логировать
       logger.error(`[IMAP Client] Ошибка при снятии блокировки с ящика ${mailboxPath}:`, releaseErr);
     }
   }
@@ -62,10 +72,9 @@ export class ImapClientService {
       return await client.list();
     } catch (err) {
       handleError(err, `[IMAP Client] Не удалось получить список почтовых ящиков`, 'listMailboxes');
-      return []; // Возвращаем пустой массив в случае ошибки
+      return [];
     }
   }
 }
 
-// Экспортируем экземпляр сервиса для удобства использования
-export const imapClientService = new ImapClientService();
+// export const imapClientService = new ImapClientService(); // Original singleton export, now handled by DI

@@ -1,4 +1,5 @@
 // backend/src/index.ts (Изменения)
+import "reflect-metadata";
 import app from './app';
 import appConfig from './configs/appConfig';
 import { logger } from './utils/logger';

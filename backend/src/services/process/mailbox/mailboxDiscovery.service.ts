@@ -1,18 +1,26 @@
 import { ImapFlow } from 'imapflow';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
+import { injectable } from 'inversify';
+import "reflect-metadata";
 // Мы не можем напрямую использовать imapClientService.listMailboxes здесь,
 // так как это создаст циклическую зависимость, если imapClientService
 // захочет использовать что-то из mailboxDiscoveryService (хотя в данном случае это маловероятно).
 // Поэтому передаем клиент ImapFlow напрямую.
 
-export class MailboxDiscoveryService {
+export interface IMailboxDiscoveryService {
+  findSentMailbox(client: ImapFlow, user: string): Promise<string | null>;
+  findDraftMailbox(client: ImapFlow, user: string): Promise<string | null>;
+}
+
+@injectable()
+export class MailboxDiscoveryService implements IMailboxDiscoveryService {
   private async listMailboxesSafe(client: ImapFlow, user: string): Promise<ReturnType<ImapFlow['list']>> {
     try {
       return await client.list();
     } catch (err) {
       handleError(err, `[Mailbox Discovery] Не удалось получить список почтовых ящиков для ${user}`, 'listMailboxesSafe');
-      return []; // Возвращаем пустой массив в случае ошибки
+      return [];
     }
   }
 
@@ -54,4 +62,3 @@ export class MailboxDiscoveryService {
   }
 }
 
-export const mailboxDiscoveryService = new MailboxDiscoveryService();

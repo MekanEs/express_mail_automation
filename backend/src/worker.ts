@@ -1,4 +1,5 @@
 // backend/src/worker.ts
+import "reflect-metadata";
 import { Logger, run } from 'graphile-worker';
 import { env } from './configs/supabase_env';
 import { logger } from './utils/logger';

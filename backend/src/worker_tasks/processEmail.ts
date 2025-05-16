@@ -3,9 +3,11 @@ import { Task, JobHelpers } from 'graphile-worker';
 import { ProcessJobData } from '../types/queueTypes';
 import { logger as appLogger } from '../utils/logger'; // Переименовал для ясности, если helpers.logger будет основным
 import { handleError } from '../utils/error-handler';
+import { container } from '../common/inversify.config'; // Import container
+import { TYPES } from '../common/types.di'; // Import TYPES
+import { IProcessOrchestrationService } from '../services/process/processOrchestration.service'; // Import interface
 
-// Импортируем все сервисы, которые нужны для выполнения логики
-import { processOrchestrationService } from '../services/process/processOrchestration.service';
+// Removed old import: import { processOrchestrationService } from '../services/process/processOrchestration.service';
 
 const processEmailTask: Task = async (
   payload: unknown,
@@ -32,9 +34,11 @@ const processEmailTask: Task = async (
     `[Worker Task: processEmail] Начат процесс обработки почты для ID: ${process_id}. Задача Graphile-Worker ID: ${helpers.job.id}`
   );
 
+  // Get service instance from container
+  const orchestrationService = container.get<IProcessOrchestrationService>(TYPES.ProcessOrchestrationService);
+
   try {
-    // Передаём jobData как параметры для processOrchestrationService
-    await processOrchestrationService.startEmailProcessing(jobData);
+    await orchestrationService.startEmailProcessing(jobData);
     helpers.logger.info(
       `[Worker Task: processEmail] Процесс обработки для ID: ${process_id} завершен.`
     );

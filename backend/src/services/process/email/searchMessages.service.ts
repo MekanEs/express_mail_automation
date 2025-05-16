@@ -1,6 +1,8 @@
 import { ImapFlow, SearchObject } from 'imapflow';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
+import { injectable } from 'inversify';
+import "reflect-metadata";
 
 export interface SearchParams {
   client: ImapFlow;
@@ -8,7 +10,17 @@ export interface SearchParams {
   logContext?: string;
 }
 
-export class SearchMessagesService {
+export interface ISearchMessagesService {
+  search(
+    client: ImapFlow,
+    criteria: SearchObject,
+    logContext?: string
+  ): Promise<number[]>;
+  searchUnseenFromSender(client: ImapFlow, fromEmail: string): Promise<number[]>;
+}
+
+@injectable()
+export class SearchMessagesService implements ISearchMessagesService {
   /**
    * Ищет UID сообщений в указанном почтовом ящике по заданным критериям.
    * @param client - IMAP клиент.
@@ -51,12 +63,12 @@ export class SearchMessagesService {
 
       logger.info(`[SearchMessages Service] Поиск писем от ${fromEmail} (всех)`);
       const listFrom = await client.search(fromCriteria, { uid: true });
-      
+
       logger.info(`[SearchMessages Service] Поиск непрочитанных писем (всех)`);
       const listUnseen = await client.search(unseenCriteria, { uid: true });
-      
+
       const resultUids = listFrom.filter(uid => listUnseen.includes(uid));
-      
+
       logger.info(`[SearchMessages Service] Найдено ${resultUids.length} непрочитанных писем от ${fromEmail}.`);
       return resultUids;
     } catch (err) {
@@ -66,4 +78,3 @@ export class SearchMessagesService {
   }
 }
 
-export const searchMessagesService = new SearchMessagesService();

@@ -2,10 +2,16 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { ProcessReport } from '../../../types/reports';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
-import { fileSystemService } from '../utils/fileSystem.service'; // Для удаления файлов
-import { reportService } from '../utils/report.service'; // Для обновления отчета
+// import { fileSystemService } from '../utils/fileSystem.service'; // To be injected
+// import { reportService } from '../utils/report.service'; // To be injected
 import puppeteer from 'puppeteer-extra';
 import { Browser, LaunchOptions, Page } from 'puppeteer';
+import { injectable, inject } from 'inversify';
+import "reflect-metadata";
+import { TYPES } from '../../../common/types.di';
+import { IFileSystemService } from '../utils/fileSystem.service';
+import { IReportService } from '../utils/report.service'; // Assuming this will be created
+
 puppeteer.use(StealthPlugin());
 
 export interface BrowserTask {
@@ -15,7 +21,30 @@ export interface BrowserTask {
   subject?: string | null;
 }
 
-export class BrowserInteractionService {
+export interface IBrowserInteractionService {
+  launchBrowser(headless: undefined | boolean | "shell"): Promise<Browser | null>;
+  closeBrowser(browser: Browser | null): Promise<void>;
+  processTasksWithBrowser(
+    browser: Browser | null,
+    tasks: BrowserTask[],
+    openRatePercent: number, // Процент писем, для которых нужно открывать ссылки
+    report: ProcessReport,
+  ): Promise<void>;
+}
+
+@injectable()
+export class BrowserInteractionService implements IBrowserInteractionService {
+  private readonly fileSystemService: IFileSystemService;
+  private readonly reportService: IReportService; // Assuming IReportService
+
+  constructor(
+    @inject(TYPES.FileSystemService) fileSystemService: IFileSystemService,
+    @inject(TYPES.ReportService) reportService: IReportService // Assuming TYPES.ReportService
+  ) {
+    this.fileSystemService = fileSystemService;
+    this.reportService = reportService;
+  }
+
   public async launchBrowser(headless: boolean | "shell" | undefined = false): Promise<Browser | null> {
     // headless: "new" - рекомендуемый современный режим
     // headless: true - старый headless
@@ -66,7 +95,7 @@ export class BrowserInteractionService {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Прокрутка
 
 
-      reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
+      this.reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
       logger.info(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
 
@@ -75,9 +104,9 @@ export class BrowserInteractionService {
     } catch (err) {
       const errorMessage = `Ошибка при открытии локального файла ${task.filePath} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
       handleError(err, errorMessage, 'openLocalEmailPage');
-      reportService.updateReportWithEmailStats(report, 0, 0, errorMessage); // emails_errors инкрементируется
+      this.reportService.updateReportWithEmailStats(report, 0, 0, errorMessage); // emails_errors инкрементируется
     } finally {
-      fileSystemService.deleteFile(task.filePath); // Удаляем временный HTML файл
+      this.fileSystemService.deleteFile(task.filePath); // Удаляем временный HTML файл
     }
   }
 
@@ -87,7 +116,7 @@ export class BrowserInteractionService {
       return;
     }
     logger.info(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
-    reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
+    this.reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
 
     try {
       await page.goto(task.linkToOpen, {
@@ -96,12 +125,12 @@ export class BrowserInteractionService {
       });
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000)); // Случайная задержка
 
-      reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+      this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
       logger.info(`[Browser Service] Внешняя ссылка ${task.linkToOpen} (UID: ${task.uid}) успешно открыта.`);
     } catch (err) {
       const errorMessage = `Ошибка при открытии внешней ссылки ${task.linkToOpen} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
       handleError(err, errorMessage, 'openExternalLinkPage');
-      reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
+      this.reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
     }
   }
 
@@ -120,8 +149,8 @@ export class BrowserInteractionService {
     if (!browser) {
       logger.error('[Browser Service] Экземпляр браузера не передан, обработка задач прервана.');
       tasks.forEach(task => {
-        reportService.updateReportWithEmailStats(report, 0, 0, `Browser instance not available for UID ${task.uid}`);
-        if (task.filePath) fileSystemService.deleteFile(task.filePath); // Очистка, если файл был создан
+        this.reportService.updateReportWithEmailStats(report, 0, 0, `Browser instance not available for UID ${task.uid}`);
+        if (task.filePath) this.fileSystemService.deleteFile(task.filePath); // Очистка, если файл был создан
       });
       return;
     }
@@ -150,7 +179,7 @@ export class BrowserInteractionService {
       // Общая ошибка цикла обработки задач
       handleError(err, '[Browser Service] Критическая ошибка в цикле обработки задач браузера', 'processTasksWithBrowser');
       // Можно добавить обновление отчета общей ошибкой
-      reportService.updateReportWithEmailStats(report, 0, 0, `Browser task processing loop failed: ${err instanceof Error ? err.message : err}`);
+      this.reportService.updateReportWithEmailStats(report, 0, 0, `Browser task processing loop failed: ${err instanceof Error ? err.message : err}`);
     }
     // Не закрываем браузер здесь - это теперь ответственность вызывающего кода
   }
@@ -162,4 +191,4 @@ export class BrowserInteractionService {
   }
 }
 
-export const browserInteractionService = new BrowserInteractionService();
+// export const browserInteractionService = new BrowserInteractionService(fileSystemService, reportService); // Original singleton export, now handled by DI

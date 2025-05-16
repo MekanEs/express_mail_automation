@@ -1,13 +1,16 @@
 import { ImapFlow } from 'imapflow';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
-import { imapClientService } from '../client/imapClient.service';
-import { searchMessagesService } from '../email/searchMessages.service';
+import { injectable, inject } from 'inversify';
+import "reflect-metadata";
+import { TYPES } from '../../../common/types.di';
+import { IImapClientService } from '../client/imapClient.service';
+import { ISearchMessagesService } from '../email/searchMessages.service';
 
 export interface SpamCheckResult {
   totalSpamFound: number;
   totalSpamMoved: number;
-  movedUidsMap: Map<number, number>; // Карта старых UID на новые UID после перемещения
+  movedUidsMap: Map<number, number>;
 }
 
 export interface SpamFolderResult {
@@ -16,7 +19,28 @@ export interface SpamFolderResult {
   movedUidsMap: Map<number, number>;
 }
 
-export class SpamHandlingService {
+export interface ISpamHandlingService {
+  processAllSpamFolders(
+    client: ImapFlow,
+    configuredSpamFolderNames: string[],
+    targetInboxPath: string,
+    fromEmail: string
+  ): Promise<SpamCheckResult>;
+}
+
+@injectable()
+export class SpamHandlingService implements ISpamHandlingService {
+  private readonly imapClientService: IImapClientService;
+  private readonly searchMessagesService: ISearchMessagesService;
+
+  constructor(
+    @inject(TYPES.ImapClientService) imapClientService: IImapClientService,
+    @inject(TYPES.SearchMessagesService) searchMessagesService: ISearchMessagesService
+  ) {
+    this.imapClientService = imapClientService;
+    this.searchMessagesService = searchMessagesService;
+  }
+
   /**
    * Проверяет одну спам-папку и перемещает письма от указанного отправителя в целевой ящик.
    */
@@ -30,7 +54,7 @@ export class SpamHandlingService {
     let spamMovedInFolder = 0;
     const movedUidsMap = new Map<number, number>();
 
-    const lock = await imapClientService.getMailboxLock(client, spamMailboxPath);
+    const lock = await this.imapClientService.getMailboxLock(client, spamMailboxPath);
     if (!lock) {
       logger.warn(`[Spam Handling] Не удалось заблокировать спам-папку ${spamMailboxPath}, пропускаем.`);
       return { spamFoundInFolder, spamMovedInFolder, movedUidsMap };
@@ -38,12 +62,11 @@ export class SpamHandlingService {
 
     try {
       logger.info(`[Spam Handling] Поиск писем от ${fromEmail} в спам-папке: ${spamMailboxPath}`);
-      // Для спама обычно ищем все письма, не только непрочитанные
-      const spamListUids = await searchMessagesService.search( // <--- ИСПРАВЛЕНО ЗДЕСЬ
+      const spamListUids = await this.searchMessagesService.search(
         client,
-        { from: fromEmail }, // Критерии поиска
-        `Спам-папка: ${spamMailboxPath}` // Контекст для логирования
-      );  // false для seenFlag
+        { from: fromEmail },
+        `Спам-папка: ${spamMailboxPath}`
+      );
 
       spamFoundInFolder = spamListUids.length;
       logger.info(`[Spam Handling] Найдено ${spamFoundInFolder} писем от ${fromEmail} в ${spamMailboxPath}.`);
@@ -59,18 +82,16 @@ export class SpamHandlingService {
             logger.info(`[Spam Handling] Успешно перемещено ${spamMovedInFolder} писем. UID map size: ${uidMap.size}`);
           } else {
             logger.warn(`[Spam Handling] messageMove не вернул uidMap для ${spamMailboxPath}. Считаем, что перемещено ${spamListUids.length} (оценка).`);
-            // В этом случае мы не можем точно знать новые UID, но можем считать, что все запрошенные были перемещены
             spamMovedInFolder = spamListUids.length;
           }
         } catch (moveErr) {
           handleError(moveErr, `[Spam Handling] Ошибка при перемещении писем из ${spamMailboxPath} в ${targetInboxPath}`, 'checkAndMoveSpamFromFolder.messageMove');
-          // Если перемещение не удалось, не обновляем spamMovedInFolder
         }
       }
     } catch (searchErr) {
       handleError(searchErr, `[Spam Handling] Ошибка при поиске писем в спам-папке ${spamMailboxPath}`, 'checkAndMoveSpamFromFolder.search');
     } finally {
-      await imapClientService.releaseMailboxLock(lock, spamMailboxPath);
+      await this.imapClientService.releaseMailboxLock(lock, spamMailboxPath);
     }
     return { spamFoundInFolder, spamMovedInFolder, movedUidsMap };
   }
@@ -102,10 +123,6 @@ export class SpamHandlingService {
     logger.info(`[Spam Handling] Начало проверки спам-папок: ${configuredSpamFolderNames.join(', ')} для отправителя ${fromEmail}`);
 
     for (const spamPath of configuredSpamFolderNames) {
-      // Здесь можно добавить логику поиска реального пути к спам-папке, если имена могут отличаться от реальных путей
-      // Например, используя MailboxDiscoveryService.findSpamMailboxes
-      // Пока предполагаем, что configuredSpamFolderNames содержит точные пути
-
       const { spamFoundInFolder, spamMovedInFolder, movedUidsMap } = await this.checkAndMoveSpamFromFolder(
         client,
         spamPath,
@@ -122,4 +139,4 @@ export class SpamHandlingService {
   }
 }
 
-export const spamHandlingService = new SpamHandlingService();
+// export const spamHandlingService = new SpamHandlingService(imapClientService, searchMessagesService); // Original singleton export, now handled by DI

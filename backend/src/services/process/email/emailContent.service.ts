@@ -4,10 +4,14 @@ import { FetchMessageObject } from 'imapflow';
 import { simpleParser, ParsedMail } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
 import * as cheerio from 'cheerio';
+import { injectable, inject } from 'inversify';
+import "reflect-metadata";
+import { TYPES } from '../../../common/types.di';
+import { IFileSystemService } from '../utils/fileSystem.service';
 import { sanitizeOptions } from '../../constants'; // Убедись, что путь корректен
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
-import { fileSystemService } from '../utils/fileSystem.service';
+// import { fileSystemService } from '../utils/fileSystem.service'; // To be injected
 
 export interface SavedEmailInfo {
   filePath: string | null;
@@ -15,7 +19,24 @@ export interface SavedEmailInfo {
   subject?: string | null;
 }
 
-export class EmailContentService {
+export interface IEmailContentService {
+  parseEmail(messageSource: Buffer): Promise<ParsedMail | null>;
+  sanitizeHtmlContent(html: string): string;
+  extractFirstLink(html: string): string | null;
+  extractFirstValidExternalLink(html: string): string | null;
+  saveEmailForBrowser(message: FetchMessageObject, dirPath: string): Promise<SavedEmailInfo>;
+}
+
+@injectable()
+export class EmailContentService implements IEmailContentService {
+  private readonly fileSystemService: IFileSystemService;
+
+  constructor(
+    @inject(TYPES.FileSystemService) fileSystemService: IFileSystemService
+  ) {
+    this.fileSystemService = fileSystemService;
+  }
+
   public async parseEmail(messageSource: Buffer): Promise<ParsedMail | null> {
     try {
       const parsed = await simpleParser(messageSource);
@@ -122,7 +143,7 @@ export class EmailContentService {
     // Используем новый метод для извлечения ссылки
     const extractedLink = this.extractFirstValidExternalLink(sanitizedHtml);
 
-    if (!fileSystemService.createDirectoryIfNotExists(dirPath)) {
+    if (!this.fileSystemService.createDirectoryIfNotExists(dirPath)) {
       logger.error(`[EmailContent Service] Не удалось создать/получить доступ к директории ${dirPath} для сохранения письма.`);
       return defaultResult;
     }
@@ -141,4 +162,4 @@ export class EmailContentService {
   }
 }
 
-export const emailContentService = new EmailContentService();
+// export const emailContentService = new EmailContentService(fileSystemService); // Original singleton export, now handled by DI

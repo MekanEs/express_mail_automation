@@ -1,9 +1,19 @@
 import fs from 'fs';
 import path from 'path';
-import { handleError } from '../../../utils/error-handler';
-import { logger } from '../../../utils/logger';
+import { injectable } from "inversify";
+import "reflect-metadata"; // Recommended to be here or ensure it's imported globally
+import { handleError } from '../../../utils/error-handler'; // Corrected path
+import { logger } from '../../../utils/logger'; // Corrected path
 
-export class FileSystemService {
+export interface IFileSystemService {
+  createDirectoryIfNotExists(dirPath: string): boolean;
+  deleteFile(filePath: string): boolean;
+  cleanupDirectory(dirPath: string): Promise<void>;
+  cleanUpTempDirectory(tempDirectories: string[], process_id: string): Promise<void>;
+}
+
+@injectable()
+export class FileSystemService implements IFileSystemService {
   public createDirectoryIfNotExists(dirPath: string): boolean {
     if (!fs.existsSync(dirPath)) {
       try {
@@ -82,4 +92,5 @@ export class FileSystemService {
     }
   }
 }
-export const fileSystemService = new FileSystemService();
+
+// export const fileSystemService = new FileSystemService(); // Original singleton export, now handled by DI

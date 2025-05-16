@@ -3,8 +3,27 @@ import { ProcessReport } from '../../../types/reports';
 import { InsertReportType } from '../../../types/types'; // Убедись, что этот тип экспортируется
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
+import { injectable } from "inversify";
+import "reflect-metadata";
 
-export class ReportService {
+export interface IReportService {
+  initializeReport(
+    process_id: string,
+    accountEmail: string,
+    senderEmail: string,
+    initialSpamFound?: number,
+    initialSpamMoved?: number
+  ): ProcessReport;
+  updateReportWithSpamStats(report: ProcessReport, spamFound: number, spamMoved: number): void;
+  updateReportWithEmailStats(report: ProcessReport, emailsFoundDelta?: number, emailsProcessedDelta?: number, emailError?: string): void;
+  updateReportWithLinkStats(report: ProcessReport, attemptedOpenDelta?: number, targetOpenDelta?: number, linkError?: string): void;
+  updateReportWithReplyStats(report: ProcessReport, replySent: boolean): void;
+  finalizeReportStatus(report: ProcessReport): void;
+  submitReport(report: ProcessReport, inboxPaths: string): Promise<void>;
+}
+
+@injectable()
+export class ReportService implements IReportService {
   public initializeReport(
     process_id: string,
     accountEmail: string,
@@ -109,4 +128,4 @@ export class ReportService {
   }
 }
 
-export const reportService = new ReportService();
+// export const reportService = new ReportService();

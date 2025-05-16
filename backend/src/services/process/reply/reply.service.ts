@@ -6,8 +6,10 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { AuthenticationType } from 'nodemailer/lib/smtp-connection';
 import { logger } from '../../../utils/logger';
 import { handleError } from '../../../utils/error-handler';
-import { Provider } from '../../../types/types'; // Убедись, что тип Provider доступен
+import { Provider } from '../../../types/types';
 import { warmupReplies } from './warmupReplies';
+import { injectable } from 'inversify';
+import "reflect-metadata";
 
 // Тексты ответов можно вынести в константы или отдельный файл, если их много
 
@@ -31,7 +33,14 @@ interface PreparedReply {
   emailContent: EmailContent | null;
 }
 
-export class ReplyService {
+export interface IReplyService {
+  prepareReply(originalMessage: FetchMessageObject, currentUserEmail: string): Promise<PreparedReply>;
+  sendSmtpEmail(emailContent: EmailContent, smtpHost: string, authOptions: SmtpAuthOptions): Promise<boolean>;
+  appendEmailToMailbox(client: ImapFlow, mailboxPath: string, emailBuffer: Buffer, provider: Provider, flags?: string[]): Promise<boolean>;
+}
+
+@injectable()
+export class ReplyService implements IReplyService {
   /**
    * Готовит буфер MIME сообщения и его контент для ответа.
    */
@@ -175,8 +184,8 @@ export class ReplyService {
     client: ImapFlow,
     mailboxPath: string,
     emailBuffer: Buffer,
-    flags: string[] = ['\\Seen'],
-    provider: Provider // Provider может влиять на логику, например, для Google не сохранять
+    provider: Provider,
+    flags: string[] = ['\\Seen']
   ): Promise<boolean> {
     if (provider === 'google') {
       logger.info(`[Reply Service] Для Google провайдера ответ автоматически сохраняется, пропуск appendEmailToMailbox.`);
@@ -200,4 +209,3 @@ export class ReplyService {
   }
 }
 
-export const replyService = new ReplyService();

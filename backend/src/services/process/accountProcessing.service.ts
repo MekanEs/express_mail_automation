@@ -1,33 +1,51 @@
 import { Account, ProviderConfig, AccountProcessingParams, ProcessConfig } from '../../types/types';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
-import { imapClientService } from './client/imapClient.service';
-import { spamHandlingService } from './mailbox/spamHandling.service';
-import { searchMessagesService } from './email/searchMessages.service';
-import { emailContentService } from './email/emailContent.service';
+import { injectable, inject } from 'inversify';
+import "reflect-metadata";
+import { TYPES } from '../../common/types.di';
+
+import { IImapClientService } from './client/imapClient.service';
+import { ISpamHandlingService } from './mailbox/spamHandling.service';
+import { ISearchMessagesService } from './email/searchMessages.service';
+import { IEmailContentService } from './email/emailContent.service';
 import { BrowserTask } from './browser/browserInteraction.service';
-import { replyService } from './reply/reply.service';
-import { reportService } from './utils/report.service';
-import { mailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
-import { fileSystemService } from './utils/fileSystem.service';
+import { IReplyService } from './reply/reply.service';
+import { IReportService } from './utils/report.service';
+import { IMailboxDiscoveryService } from './mailbox/mailboxDiscovery.service';
+import { IFileSystemService } from './utils/fileSystem.service';
 import { ProcessReport } from '../../types/reports';
 import { FetchMessageObject, ImapFlow } from 'imapflow';
 
+export interface IAccountProcessingService {
+  processAccountFromSender(params: AccountProcessingParams): Promise<BrowserTask[]>;
+}
 
-export class AccountProcessingService {
+@injectable()
+export class AccountProcessingService implements IAccountProcessingService {
+  constructor(
+    @inject(TYPES.ImapClientService) private readonly imapClientService: IImapClientService,
+    @inject(TYPES.SpamHandlingService) private readonly spamHandlingService: ISpamHandlingService,
+    @inject(TYPES.SearchMessagesService) private readonly searchMessagesService: ISearchMessagesService,
+    @inject(TYPES.EmailContentService) private readonly emailContentService: IEmailContentService,
+    @inject(TYPES.ReplyService) private readonly replyService: IReplyService,
+    @inject(TYPES.ReportService) private readonly reportService: IReportService,
+    @inject(TYPES.MailboxDiscoveryService) private readonly mailboxDiscoveryService: IMailboxDiscoveryService,
+    @inject(TYPES.FileSystemService) private readonly fileSystemService: IFileSystemService
+  ) { }
+
   private async _initializeImapConnection(account: Account, providerConfig: ProviderConfig): Promise<ImapFlow | null> {
     const userEmail = account.email;
     logger.info(`[AccountProcessing] Initializing IMAP connection for: ${userEmail}`);
-    const client = imapClientService.createImapClient(
+    const client = this.imapClientService.createImapClient(
       userEmail,
       providerConfig.host,
       account.is_token ? undefined : account.app_password || undefined,
       account.is_token ? account.access_token || undefined : undefined,
     );
 
-    if (!(await imapClientService.connectClient(client, userEmail))) {
+    if (!(await this.imapClientService.connectClient(client, userEmail))) {
       logger.error(`[AccountProcessing] Failed to connect to IMAP for ${userEmail}.`);
-      // Reporting will be handled by the main orchestrator method
       return null;
     }
     return client;
@@ -35,25 +53,25 @@ export class AccountProcessingService {
 
   private _prepareAccountEnvironment(tempDirPath: string, accountEmail: string, process_id: string): void {
     logger.info(`[AccountProcessing] Preparing environment for account: ${accountEmail}, process_id: ${process_id}`);
-    fileSystemService.createDirectoryIfNotExists(tempDirPath);
+    this.fileSystemService.createDirectoryIfNotExists(tempDirPath);
   }
 
   private async _discoverMailboxes(client: ImapFlow, userEmail: string): Promise<{ sentMailboxPath: string | null; draftMailboxPath: string | null }> {
     logger.info(`[AccountProcessing] Discovering mailboxes for: ${userEmail}`);
-    const sentMailboxPath = await mailboxDiscoveryService.findSentMailbox(client, userEmail);
-    const draftMailboxPath = await mailboxDiscoveryService.findDraftMailbox(client, userEmail);
+    const sentMailboxPath = await this.mailboxDiscoveryService.findSentMailbox(client, userEmail);
+    const draftMailboxPath = await this.mailboxDiscoveryService.findDraftMailbox(client, userEmail);
     return { sentMailboxPath, draftMailboxPath };
   }
 
   private async _handleSpamFolders(client: ImapFlow, providerConfig: ProviderConfig, fromEmail: string, report: ProcessReport): Promise<void> {
     logger.info(`[AccountProcessing] Handling spam folders for: ${fromEmail}`);
-    const spamResult = await spamHandlingService.processAllSpamFolders(
+    const spamResult = await this.spamHandlingService.processAllSpamFolders(
       client,
       providerConfig.spam,
-      providerConfig.mailboxes[0], // Assuming the first mailbox is a primary one for context, this might need review
+      providerConfig.mailboxes[0],
       fromEmail
     );
-    reportService.updateReportWithSpamStats(report, spamResult.totalSpamFound, spamResult.totalSpamMoved);
+    this.reportService.updateReportWithSpamStats(report, spamResult.totalSpamFound, spamResult.totalSpamMoved);
   }
 
   private async _processSingleEmail(
@@ -69,7 +87,7 @@ export class AccountProcessingService {
     account: Account,
     remainingReplies: number
   ): Promise<{ browserTask: BrowserTask | null; updatedRemainingReplies: number }> {
-    const savedEmailInfo = await emailContentService.saveEmailForBrowser(message, tempDirPath);
+    const savedEmailInfo = await this.emailContentService.saveEmailForBrowser(message, tempDirPath);
     let browserTask: BrowserTask | null = null;
 
     if (savedEmailInfo.filePath) {
@@ -80,12 +98,12 @@ export class AccountProcessingService {
         subject: savedEmailInfo.subject
       };
     } else {
-      reportService.updateReportWithEmailStats(report, 0, 0, `Failed to save email UID ${message.uid} for browser`);
+      this.reportService.updateReportWithEmailStats(report, 0, 0, `Failed to save email UID ${message.uid} for browser`);
     }
 
     let updatedRemainingReplies = remainingReplies;
     if (remainingReplies > 0) {
-      updatedRemainingReplies = await this.manageReplies(
+      updatedRemainingReplies = await this._manageReplies(
         message,
         userEmail,
         sentMailboxPath,
@@ -118,16 +136,16 @@ export class AccountProcessingService {
     const browserTasks: BrowserTask[] = [];
     let currentRemainingReplies = initialRemainingReplies;
 
-    const lock = await imapClientService.getMailboxLock(client, mailboxPath);
+    const lock = await this.imapClientService.getMailboxLock(client, mailboxPath);
     if (!lock) {
       logger.warn(`[AccountProcessing] Failed to open mailbox ${mailboxPath} for ${userEmail}, skipping.`);
-      reportService.updateReportWithEmailStats(report, 0, 0, `Failed to lock mailbox: ${mailboxPath}`);
+      this.reportService.updateReportWithEmailStats(report, 0, 0, `Failed to lock mailbox: ${mailboxPath}`);
       return { browserTasks, finalRemainingReplies: currentRemainingReplies };
     }
 
     try {
-      const messageUids = await searchMessagesService.searchUnseenFromSender(client, fromEmail);
-      reportService.updateReportWithEmailStats(report, messageUids.length);
+      const messageUids = await this.searchMessagesService.searchUnseenFromSender(client, fromEmail);
+      this.reportService.updateReportWithEmailStats(report, messageUids.length);
 
       const uidsToProcess = messageUids.slice(0, config.limit);
       logger.info(`[AccountProcessing] Found ${messageUids.length} emails in ${mailboxPath}, will process ${uidsToProcess.length} (limit: ${config.limit})`);
@@ -138,21 +156,20 @@ export class AccountProcessingService {
         const message = await client.fetchOne(uid.toString(), { source: true, uid: true, envelope: true, headers: true }, { uid: true });
         if (!message) {
           logger.warn(`[AccountProcessing] Failed to fetch message UID ${uid} from ${mailboxPath}`);
-          reportService.updateReportWithEmailStats(report, 0, 0, `Failed to fetch message UID ${uid}`);
+          this.reportService.updateReportWithEmailStats(report, 0, 0, `Failed to fetch message UID ${uid}`);
           continue;
         }
 
-        const { browserTask, updatedRemainingReplies } = await this._processSingleEmail(
+        const { browserTask, updatedRemainingReplies: newRemainingReplies } = await this._processSingleEmail(
           message, client, userEmail, sentMailboxPath, draftMailboxPath, config, report, tempDirPath, providerConfig, account, currentRemainingReplies
         );
+        currentRemainingReplies = newRemainingReplies;
 
-        currentRemainingReplies = updatedRemainingReplies;
         if (browserTask) {
           browserTasks.push(browserTask);
         }
         messagesToMarkAsSeen.push(uid);
 
-        // Configurable delay
         if (config.minDelayBetweenEmailsMs && config.maxDelayBetweenEmailsMs) {
           const delay = Math.floor(Math.random() * (config.maxDelayBetweenEmailsMs - config.minDelayBetweenEmailsMs + 1)) + config.minDelayBetweenEmailsMs;
           logger.info(`[AccountProcessing] Delaying for ${delay}ms (random between ${config.minDelayBetweenEmailsMs}ms and ${config.maxDelayBetweenEmailsMs}ms)`);
@@ -171,21 +188,21 @@ export class AccountProcessingService {
     } catch (mailboxErr) {
       const errMsg = `Error processing mailbox ${mailboxPath} for ${userEmail}: ${mailboxErr instanceof Error ? mailboxErr.message : String(mailboxErr)}`;
       handleError(mailboxErr, errMsg, 'processAccountFromSender.mailboxLoop');
-      reportService.updateReportWithEmailStats(report, 0, 0, errMsg);
+      this.reportService.updateReportWithEmailStats(report, 0, 0, errMsg);
     } finally {
-      await imapClientService.releaseMailboxLock(lock, mailboxPath);
+      await this.imapClientService.releaseMailboxLock(lock, mailboxPath);
     }
     return { browserTasks, finalRemainingReplies: currentRemainingReplies };
   }
 
   private async _finalizeAccountProcessing(client: ImapFlow, userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
-    reportService.finalizeReportStatus(report);
-    await reportService.submitReport(report, providerConfig.mailboxes.join(', ')); // Added submitReport here
-    await imapClientService.disconnectClient(client, userEmail);
+    this.reportService.finalizeReportStatus(report);
+    await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
+    await this.imapClientService.disconnectClient(client, userEmail);
     logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`);
   }
 
-  private async manageReplies(
+  private async _manageReplies(
     message: FetchMessageObject,
     userEmail: string,
     sentMailboxPath: string | null,
@@ -196,28 +213,28 @@ export class AccountProcessingService {
     account: Account,
     client: ImapFlow,
     uid: number
-  ) {
-    const preparedReply = await replyService.prepareReply(message, userEmail);
+  ): Promise<number> {
+    const preparedReply = await this.replyService.prepareReply(message, userEmail);
     if (!preparedReply.mimeBuffer || !preparedReply.emailContent) {
       logger.warn(`[AccountProcessing] Не удалось подготовить ответ для UID ${uid}.`);
-      return remainingReplies
+      return remainingReplies;
     }
 
-    const smtpSent = await replyService.sendSmtpEmail(
+    const smtpSent = await this.replyService.sendSmtpEmail(
       preparedReply.emailContent,
       providerConfig.smtpHost,
       { password: account.app_password || undefined, token: account.access_token || undefined }
     );
-    reportService.updateReportWithReplyStats(report, smtpSent);
+    this.reportService.updateReportWithReplyStats(report, smtpSent);
     if (smtpSent) {
       remainingReplies--;
       if (sentMailboxPath) {
-        await replyService.appendEmailToMailbox(client, sentMailboxPath, preparedReply.mimeBuffer, ['\\Seen'], account.provider);
+        await this.replyService.appendEmailToMailbox(client, sentMailboxPath, preparedReply.mimeBuffer, account.provider, ['\\Seen']);
       }
     } else {
       if (draftMailboxPath) {
         remainingReplies--;
-        await replyService.appendEmailToMailbox(client, draftMailboxPath, preparedReply.mimeBuffer, ['\\Draft', '\\Seen'], account.provider);
+        await this.replyService.appendEmailToMailbox(client, draftMailboxPath, preparedReply.mimeBuffer, account.provider, ['\\Draft', '\\Seen']);
         logger.info(`[AccountProcessing] Ответ на UID ${uid} сохранен в черновики из-за ошибки SMTP.`);
       }
     }
@@ -240,53 +257,43 @@ export class AccountProcessingService {
 
     const client = await this._initializeImapConnection(account, providerConfig);
     if (!client) {
-      reportService.updateReportWithEmailStats(report, 0, 0, "IMAP connection failed");
-      reportService.finalizeReportStatus(report);
-      await reportService.submitReport(report, providerConfig.mailboxes.join(', '));
+      this.reportService.updateReportWithEmailStats(report, 0, 0, "IMAP connection failed");
+      this.reportService.finalizeReportStatus(report);
+      await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
       return [];
     }
 
     this._prepareAccountEnvironment(tempDirPath, userEmail, process_id);
+    const { sentMailboxPath, draftMailboxPath } = await this._discoverMailboxes(client, userEmail);
 
-    let remainingReplies = config.repliesCount;
+    await this._handleSpamFolders(client, providerConfig, fromEmail, report);
+
     const allBrowserTasks: BrowserTask[] = [];
+    let overallRemainingReplies = config.repliesCount;
 
-    try {
-      const { sentMailboxPath, draftMailboxPath } = await this._discoverMailboxes(client, userEmail);
-      await this._handleSpamFolders(client, providerConfig, fromEmail, report);
-
-      for (const mailboxPath of providerConfig.mailboxes) {
-        const { browserTasks: mailboxBrowserTasks, finalRemainingReplies } = await this._processMailbox(
-          mailboxPath,
-          client,
-          fromEmail,
-          config,
-          report,
-          account,
-          providerConfig,
-          sentMailboxPath,
-          draftMailboxPath,
-          tempDirPath,
-          remainingReplies
-        );
-        allBrowserTasks.push(...mailboxBrowserTasks);
-        remainingReplies = finalRemainingReplies; // Update remaining replies after processing each mailbox
+    for (const mailboxPath of providerConfig.mailboxes) {
+      const { browserTasks, finalRemainingReplies } = await this._processMailbox(
+        mailboxPath,
+        client,
+        fromEmail,
+        config,
+        report,
+        account,
+        providerConfig,
+        sentMailboxPath,
+        draftMailboxPath,
+        tempDirPath,
+        overallRemainingReplies
+      );
+      allBrowserTasks.push(...browserTasks);
+      overallRemainingReplies = finalRemainingReplies;
+      if (overallRemainingReplies <= 0 && config.repliesCount > 0) {
+        logger.info(`[AccountProcessing] Достигнут лимит ответов (${config.repliesCount}), прекращение обработки почтовых ящиков.`);
+        break;
       }
-    } catch (generalErr) {
-      const errMsg = `General error processing account ${userEmail}: ${generalErr instanceof Error ? generalErr.message : String(generalErr)}`;
-      handleError(generalErr, errMsg, 'processAccountFromSender');
-      reportService.updateReportWithEmailStats(report, 0, 0, errMsg);
-    } finally {
-      // Finalize and submit report, then disconnect client
-      // The submitReport was moved here to ensure it's always called before disconnect.
-      // Original _finalizeAccountProcessing also contained submitReport, which is fine as it handles success path.
-      // Here we handle both success and general error paths before disconnect.
-      await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail);
     }
 
-    logger.info(`[AccountProcessing] Finished processing for: ${userEmail}, sender: ${fromEmail}. Total browser tasks: ${allBrowserTasks.length}`);
+    await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail);
     return allBrowserTasks;
   }
 }
-
-export const accountProcessingService = new AccountProcessingService();
