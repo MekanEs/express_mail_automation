@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { deleteReports, archiveSenderAggregates, DeleteReportsParams, deleteEmptyReports } from "../api"; // Import API functions and types
+import { deleteReports, archiveSenderAggregates, DeleteReportsParams, deleteEmptyReports, deleteReportsBySenderApi } from "../api"; // Import API functions and types
 
 export const useDeleteReports = () => {
   const queryClient = useQueryClient();
@@ -44,6 +44,29 @@ export const useArchiveSenderAggregates = () => {
     },
     onError: (error) => {
       toast.error(`Ошибка архивации: ${error.message}`);
+    },
+  });
+};
+
+export const useDeleteReportsBySender = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { message: string; deletedCount: number },
+    Error,
+    string
+  >({
+    mutationFn: async (sender: string) => {
+      return deleteReportsBySenderApi(sender);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      toast.success(data.message || 'Отчеты от указанного отправителя успешно удалены.');
+      console.log('Reports by sender deleted successfully, query cache invalidated.', data);
+    },
+    onError: (error: Error) => {
+      toast.error(`Ошибка при удалении отчетов: ${error.message}`);
+      console.error('Error deleting reports by sender:', error);
     },
   });
 };

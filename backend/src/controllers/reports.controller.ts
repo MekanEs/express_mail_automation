@@ -134,5 +134,38 @@ class ReportsController {
       });
     }
   }
+
+  public async deleteBySender(req: Request, response: Response): Promise<void> {
+    try {
+      const { sender } = req.body;
+
+      if (!sender) {
+        response.status(400).send({ error: 'Sender parameter is required' });
+        return;
+      }
+
+      // В Supabase JS SDK v2 .delete() может возвращать count если указать { count: 'exact' }
+      const { error, count } = await supabaseClient
+        .from('reports')
+        .delete({ count: 'exact' })
+        .eq('sender', sender as string);
+
+      if (error) {
+        console.error('Error deleting reports by sender:', error);
+        response.status(500).send({ error: error.message });
+        return;
+      }
+
+      response.status(200).send({
+        message: `Reports from sender "${sender}" deleted successfully`,
+        deletedCount: count === null ? 0 : count // count может быть null, если ничего не удалено или ошибка
+      });
+    } catch (err) {
+      console.error('Unexpected error when deleting reports by sender:', err);
+      response.status(500).send({
+        error: err instanceof Error ? err.message : 'Unknown error occurred'
+      });
+    }
+  }
 }
 export const reportsController = new ReportsController();

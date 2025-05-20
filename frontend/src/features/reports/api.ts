@@ -77,6 +77,25 @@ export const deleteEmptyReports = async (): Promise<void> => {
   return;
 };
 
+export const deleteReportsBySenderApi = async (sender: string): Promise<{ message: string, deletedCount: number }> => {
+  const url = `${API_URL}/reports/delete-by-sender`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    body: JSON.stringify({ sender }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      message: `Failed to delete reports by sender: ${response.statusText}`
+    }));
+    throw new Error(errorData.message || `Failed to delete reports by sender: ${response.statusText}`);
+  }
+  return await response.json(); // Ожидаем ответ { message: string, deletedCount: number }
+};
+
 export const archiveSenderAggregates = async (): Promise<{ message: string, count?: number }> => {
   const response = await fetch(`${BASE_API}/admin/archive-sender-aggregates`, {
     method: 'POST',

@@ -7,6 +7,7 @@ const router = Router();
 router.get('/', asyncHandler(reportsController.getReports));
 router.delete('/delete', asyncHandler(reportsController.deleteReports));
 router.delete('/delete-empty', asyncHandler(reportsController.deleteEmptyReports));
+router.delete('/delete-by-sender', asyncHandler(reportsController.deleteBySender));
 // Маршрут для экспорта отчетов
 
 export default router;

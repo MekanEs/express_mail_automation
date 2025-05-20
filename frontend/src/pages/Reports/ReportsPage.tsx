@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useDeleteReports, useDeleteEmptyReports } from "../../features/reports/hooks/useReportMutations";
+import { useDeleteReports, useDeleteEmptyReports, useDeleteReportsBySender } from "../../features/reports/hooks/useReportMutations";
 import { ReportPageFilters } from "../../types/types";
 import { PaginationComponent } from "../../components/common/Pagination";
 import { ReportsTable } from "../../features/reports/components/ReportsTable";
 import { ReportsFilterPanel } from "../../features/reports/components/ReportsFilterPanel";
 import { useReports } from "../../features/reports/hooks/useReports";
 import { ConfirmModal } from "../../components/common/ConfirmModal";
+import toast from "react-hot-toast";
 
 // Skeleton component for a single report group
 const ReportGroupSkeleton = () => (
@@ -53,8 +54,11 @@ export const ReportsPage = () => {
 
     const { deleteReports, isDeleting } = useDeleteReports();
     const { deleteEmptyReports, isDeleting: isDeletingEmpty } = useDeleteEmptyReports();
+    const { mutate: deleteReportsBySender, isPending: isDeletingBySender } = useDeleteReportsBySender();
 
     const [showDeleteEmptyConfirm, setShowDeleteEmptyConfirm] = useState(false);
+    const [showDeleteBySenderConfirm, setShowDeleteBySenderConfirm] = useState(false);
+    const [senderToDelete, setSenderToDelete] = useState<string>("");
 
     const renderLoadingState = () => {
         if (isFetching && !isLoading) return <div className='text-sm text-gray-500 p-2'>Получение обновлений...</div>; // Или более тонкий индикатор загрузки
@@ -82,6 +86,13 @@ export const ReportsPage = () => {
     const handleDeleteEmptyConfirm = () => {
         deleteEmptyReports();
         setShowDeleteEmptyConfirm(false);
+    };
+
+    const handleDeleteBySenderConfirm = () => {
+        if (senderToDelete.trim() !== "") {
+            deleteReportsBySender(senderToDelete.trim());
+        }
+        setShowDeleteBySenderConfirm(false);
     };
 
     const activeFilters = Object.entries(filters)
@@ -121,6 +132,35 @@ export const ReportsPage = () => {
                         >
                             {isDeletingEmpty && <span className="spinner-sm mr-2"></span>}
                             {isDeletingEmpty ? 'Удаление пустых...' : 'Удалить пустые отчеты'}
+                        </button>
+                    </div>
+                    <div className="flex items-end space-x-2 pt-2 sm:pt-0">
+                        <div className="flex-grow">
+                            <label htmlFor="senderEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                                Email отправителя для удаления:
+                            </label>
+                            <input
+                                type="email"
+                                id="senderEmail"
+                                value={senderToDelete}
+                                onChange={(e) => setSenderToDelete(e.target.value)}
+                                placeholder="example@domain.com"
+                                className="input input-bordered w-full max-w-xs"
+                            />
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (senderToDelete.trim() === "") {
+                                    toast.error("Пожалуйста, введите email отправителя.");
+                                    return;
+                                }
+                                setShowDeleteBySenderConfirm(true);
+                            }}
+                            disabled={isDeletingBySender}
+                            className="btn btn-error flex items-center"
+                        >
+                            {isDeletingBySender && <span className="spinner-sm mr-2"></span>}
+                            {isDeletingBySender ? 'Удаление...' : 'Удалить'}
                         </button>
                     </div>
                 </div>
@@ -193,6 +233,20 @@ export const ReportsPage = () => {
                 onConfirm={handleDeleteEmptyConfirm}
                 onCancel={() => setShowDeleteEmptyConfirm(false)}
                 isConfirmLoading={isDeletingEmpty}
+            />
+
+            {/* Модальное окно для подтверждения удаления по отправителю */}
+            <ConfirmModal
+                isOpen={showDeleteBySenderConfirm}
+                title={`Удалить отчеты от "${senderToDelete}"?`}
+                message={`Вы уверены, что хотите удалить все отчеты от отправителя "${senderToDelete}"? Это действие нельзя будет отменить.`}
+                confirmText="Удалить"
+                cancelText="Отмена"
+                onConfirm={handleDeleteBySenderConfirm}
+                onCancel={() => {
+                    setShowDeleteBySenderConfirm(false);
+                }}
+                isConfirmLoading={isDeletingBySender}
             />
         </div>
     );
