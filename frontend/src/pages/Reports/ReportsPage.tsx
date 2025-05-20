@@ -59,6 +59,7 @@ export const ReportsPage = () => {
     const [showDeleteEmptyConfirm, setShowDeleteEmptyConfirm] = useState(false);
     const [showDeleteBySenderConfirm, setShowDeleteBySenderConfirm] = useState(false);
     const [senderToDelete, setSenderToDelete] = useState<string>("");
+    const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
     const renderLoadingState = () => {
         if (isFetching && !isLoading) return <div className='text-sm text-gray-500 p-2'>Получение обновлений...</div>; // Или более тонкий индикатор загрузки
@@ -93,11 +94,12 @@ export const ReportsPage = () => {
             deleteReportsBySender(senderToDelete.trim());
         }
         setShowDeleteBySenderConfirm(false);
+        setIsActionsMenuOpen(false);
     };
 
     const activeFilters = Object.entries(filters)
         .filter(([, value]) => value !== undefined && value !== '')
-        .map(([key, value]) => ({ key: key as keyof ReportPageFilters, value }));
+        .map(([key, value]) => ({ key: key as keyof ReportPageFilters, value: value as string | number | undefined }));
 
     return (
         <div>
@@ -107,10 +109,13 @@ export const ReportsPage = () => {
                 <ReportsFilterPanel
                     filters={filters}
                     onFilterChange={handleFilterChange}
+                    activeFilters={activeFilters}
+                    onClearFilter={handleClearFilter}
+                    onClearAllFilters={handleClearAllFilters}
                 />
 
-                <div className="flex flex-wrap justify-between items-center gap-4 border-t pt-4 mt-4">
-                    <div className="flex space-x-2">
+                <div className="actions-toolbar flex flex-wrap justify-between items-center gap-4 border-t pt-4 mt-4">
+                    <div className="primary-actions flex space-x-2">
                         <button
                             onClick={() => refetch()}
                             className="btn btn-primary flex items-center"
@@ -123,72 +128,64 @@ export const ReportsPage = () => {
                             onClick={toggleOnlyFound}
                             className="btn btn-secondary"
                         >
-                            {onlyFound ? 'Все' : 'Только с найденными письмами'}
-                        </button>
-                        <button
-                            onClick={() => setShowDeleteEmptyConfirm(true)}
-                            disabled={isDeletingEmpty}
-                            className="btn btn-warning ml-2 flex items-center"
-                        >
-                            {isDeletingEmpty && <span className="spinner-sm mr-2"></span>}
-                            {isDeletingEmpty ? 'Удаление пустых...' : 'Удалить пустые отчеты'}
+                            {onlyFound ? 'Все отчеты' : 'Только с найденными'}
                         </button>
                     </div>
-                    <div className="flex items-end space-x-2 pt-2 sm:pt-0">
-                        <div className="flex-grow">
-                            <label htmlFor="senderEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                                Email отправителя для удаления:
-                            </label>
-                            <input
-                                type="email"
-                                id="senderEmail"
-                                value={senderToDelete}
-                                onChange={(e) => setSenderToDelete(e.target.value)}
-                                placeholder="example@domain.com"
-                                className="input input-bordered w-full max-w-xs"
-                            />
-                        </div>
+
+                    <div className="secondary-actions relative">
                         <button
-                            onClick={() => {
-                                if (senderToDelete.trim() === "") {
-                                    toast.error("Пожалуйста, введите email отправителя.");
-                                    return;
-                                }
-                                setShowDeleteBySenderConfirm(true);
-                            }}
-                            disabled={isDeletingBySender}
-                            className="btn btn-error flex items-center"
+                            onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                            className="btn btn-outline flex items-center"
                         >
-                            {isDeletingBySender && <span className="spinner-sm mr-2"></span>}
-                            {isDeletingBySender ? 'Удаление...' : 'Удалить'}
+                            Действия <span className="ml-1">▼</span>
                         </button>
+                        {isActionsMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg z-20 border">
+                                <div className="p-3 border-b">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteEmptyConfirm(true);
+                                            setIsActionsMenuOpen(false);
+                                        }}
+                                        disabled={isDeletingEmpty}
+                                        className="btn btn-ghost w-full justify-start text-left"
+                                    >
+                                        {isDeletingEmpty && <span className="spinner-sm mr-2"></span>}
+                                        {isDeletingEmpty ? 'Удаление пустых...' : 'Удалить пустые отчеты'}
+                                    </button>
+                                </div>
+                                <div className="p-3">
+                                    <label htmlFor="senderEmailDropdown" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Удалить отчеты от отправителя:
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="senderEmailDropdown"
+                                        value={senderToDelete}
+                                        onChange={(e) => setSenderToDelete(e.target.value)}
+                                        placeholder="example@domain.com"
+                                        className="input input-bordered w-full my-1 text-sm p-2"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (senderToDelete.trim() === "") {
+                                                toast.error("Пожалуйста, введите email отправителя.");
+                                                return;
+                                            }
+                                            setShowDeleteBySenderConfirm(true);
+                                        }}
+                                        disabled={isDeletingBySender || !senderToDelete.trim()}
+                                        className="btn btn-error w-full justify-start text-left mt-1"
+                                    >
+                                        {isDeletingBySender && <span className="spinner-sm mr-2"></span>}
+                                        {isDeletingBySender ? 'Удаление...' : 'Удалить от отправителя'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
-
-            {activeFilters.length > 0 && (
-                <div className="mb-4 p-3 bg-gray-100 rounded-md flex items-center flex-wrap gap-2">
-                    <span className="text-sm font-medium text-gray-700">Активные фильтры:</span>
-                    {activeFilters.map(({ key, value }) => (
-                        <span key={key} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
-                            {key.replace('filter_', '').replace('_', ' ')}: {String(value)}
-                            <button
-                                onClick={() => handleClearFilter(key)}
-                                className="ml-2 text-blue-700 hover:text-blue-900"
-                                aria-label={`Очистить фильтр для ${key}`}
-                            >
-                                &times;
-                            </button>
-                        </span>
-                    ))}
-                    <button
-                        onClick={handleClearAllFilters}
-                        className="ml-auto text-sm text-blue-600 hover:text-blue-800 underline"
-                    >
-                        Очистить все фильтры
-                    </button>
-                </div>
-            )}
 
             {isError && <div className="text-center p-4 text-red-600">Ошибка загрузки отчетов: {error instanceof Error ? error.message : String(error)}</div>}
 
@@ -245,6 +242,7 @@ export const ReportsPage = () => {
                 onConfirm={handleDeleteBySenderConfirm}
                 onCancel={() => {
                     setShowDeleteBySenderConfirm(false);
+                    setIsActionsMenuOpen(false);
                 }}
                 isConfirmLoading={isDeletingBySender}
             />
