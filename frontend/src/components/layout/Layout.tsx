@@ -10,7 +10,7 @@ export const Layout: React.FC = () => {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-6 overflow-y-auto bg-gray-100">
+        <main className="flex-1 p-2 overflow-y-auto bg-gray-100">
           {/* Content for the current route will be rendered here */}
           <Outlet />
         </main>
@@ -18,4 +18,4 @@ export const Layout: React.FC = () => {
       {/* Optional: Add a Footer component here */}
     </div>
   );
-}; 
+};

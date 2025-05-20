@@ -15,7 +15,7 @@ export const NewProcessPage: React.FC = () => {
         useProcessSelections(availableAccounts, availableSenders);
 
     return (
-        <div className="mx-auto p-8">
+        <div className="mx-auto p-2">
             {(isLoadingAccounts || isLoadingSenders) && (
                 <div className="text-center p-4">Загрузка доступных аккаунтов и отправителей...</div>
             )}

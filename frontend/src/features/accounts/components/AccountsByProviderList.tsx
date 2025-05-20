@@ -27,7 +27,7 @@ export const AccountsByProviderList: FC<AccountsByProviderListProps> = ({
     <ul className="rounded bg-gray-200 m-auto mt-2 flex flex-wrap p-2 gap-2 justify-center">
       {Object.keys(accountsSortedByProvider).map(provider => (
         <div className="flex flex-col gap-1 p-2 rounded bg-gray-300" key={provider}>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-1 justify-center">
             <button
               onClick={() => onSelectProvider(provider)}
               className="btn w-full"

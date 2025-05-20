@@ -17,7 +17,7 @@ export const AccountItem: FC<AccountItemProps> = ({
   return (
     <li
       onClick={() => onToggleSelect(account, !isSelected)}
-      className="px-4 py-2 w-100 flex grow items-center justify-between rounded cursor-pointer bg-gray-100 hover:bg-white "
+      className="px-2 py-2 w-100 flex grow items-center justify-between rounded cursor-pointer bg-gray-100 hover:bg-white "
     >
       <div className="text-text-primary cursor-pointer">{account.email}</div>
       <div className="item-actions">
