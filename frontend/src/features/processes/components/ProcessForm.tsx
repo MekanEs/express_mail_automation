@@ -38,7 +38,7 @@ export const ProcessForm: FC<ProcessFormProps> = ({
         {formErrors.selectedAccounts && <p className="text-red-500 text-sm mb-2">{formErrors.selectedAccounts}</p>}
         {formErrors.selectedSenders && <p className="text-red-500 text-sm mb-4">{formErrors.selectedSenders}</p>}
 
-        <div className="flex flex-col gap-2 border p-2">
+        <div className="flex flex-col gap-2 border p-2 rounded mt-2 bg-gray-300 border-gray-400 hover:border-gray-300 hover:bg-gray-100">
           <label className="text-sm text-gray-600">
             Лимит
             <p className="text-xs text-gray-400">
@@ -56,7 +56,7 @@ export const ProcessForm: FC<ProcessFormProps> = ({
           />
         </div>
 
-        <div className="flex flex-col gap-2 border p-2">
+        <div className="flex flex-col gap-2 border p-2 rounded mt-2 bg-gray-300 border-gray-400 hover:border-gray-300 hover:bg-gray-100">
           <label className="text-sm text-gray-600">
             Процент открытия ссылок
             <p className="text-xs text-gray-400">
@@ -74,7 +74,7 @@ export const ProcessForm: FC<ProcessFormProps> = ({
           />
         </div>
 
-        <div className="flex flex-col gap-2 border p-2">
+        <div className="flex flex-col gap-2 border p-2 rounded mt-2 bg-gray-300 border-gray-400 hover:border-gray-300 hover:bg-gray-100">
           <label className="text-sm text-gray-600">
             Количество ответов
             <p className="text-xs text-gray-400">

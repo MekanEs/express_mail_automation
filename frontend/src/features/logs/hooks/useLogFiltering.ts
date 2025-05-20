@@ -34,7 +34,7 @@ export const useLogFiltering = ({ allLogs }: UseLogFilteringParams) => {
     }
 
     // Limit the number of logs to prevent performance issues
-    return tempFilteredLogs.slice(-500);
+    return tempFilteredLogs
   }, [allLogs, searchTerm, selectedLevels]);
 
   // Toggle a specific log level in the filter

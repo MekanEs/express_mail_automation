@@ -7,6 +7,8 @@ export interface LogEntry {
   timestamp: string;
 }
 
+const MAX_LOGS = 2000; // Максимальное количество логов для хранения
+
 /**
  * Hook to handle the Server-Sent Events (SSE) connection for log streaming
  */
@@ -21,24 +23,41 @@ export const useLogStream = () => {
     eventSource.onmessage = (event) => {
       try {
         const newLog: LogEntry = JSON.parse(event.data);
-        setAllLogs((prevLogs) => [...prevLogs, newLog]);
+        setAllLogs((prevLogs) => {
+          const updatedLogs = [...prevLogs, newLog];
+          return updatedLogs.length > MAX_LOGS
+            ? updatedLogs.slice(updatedLogs.length - MAX_LOGS)
+            : updatedLogs;
+        });
       } catch (error) {
         console.error('Failed to parse log data:', event.data, error);
-        setAllLogs(prev => [...prev, {
-          level: 'error',
-          message: ['Ошибка парсинга данных лога от сервера.'],
-          timestamp: new Date().toISOString()
-        }]);
+        setAllLogs(prev => {
+          const errorLog: LogEntry = {
+            level: 'error',
+            message: ['Ошибка парсинга данных лога от сервера.'],
+            timestamp: new Date().toISOString()
+          };
+          const updatedLogs = [...prev, errorLog];
+          return updatedLogs.length > MAX_LOGS
+            ? updatedLogs.slice(updatedLogs.length - MAX_LOGS)
+            : updatedLogs;
+        });
       }
     };
 
     eventSource.onerror = (error) => {
       console.error('EventSource failed:', error);
-      setAllLogs(prev => [...prev, {
-        level: 'error',
-        message: ['Ошибка соединения с потоком логов. Попытка переподключения...'],
-        timestamp: new Date().toISOString()
-      }]);
+      setAllLogs(prev => {
+        const errorLog: LogEntry = {
+          level: 'error',
+          message: ['Ошибка соединения с потоком логов. Попытка переподключения...'],
+          timestamp: new Date().toISOString()
+        };
+        const updatedLogs = [...prev, errorLog];
+        return updatedLogs.length > MAX_LOGS
+          ? updatedLogs.slice(updatedLogs.length - MAX_LOGS)
+          : updatedLogs;
+      });
     };
 
     return () => {

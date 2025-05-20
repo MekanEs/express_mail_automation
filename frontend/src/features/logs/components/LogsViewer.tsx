@@ -1,4 +1,4 @@
-import { FC, useRef, useEffect, MutableRefObject } from 'react';
+import { FC, useRef, useEffect } from 'react';
 import { useLogStream } from '../hooks/useLogStream';
 import { useLogFiltering } from '../hooks/useLogFiltering';
 import { useLogAutoScroll } from '../hooks/useLogAutoScroll';
@@ -27,8 +27,8 @@ const LogsViewer: FC = () => {
     toggleLogLevel,
     resetFilters
   } = useLogFiltering({ allLogs });
-  const { isPaused, handleUserScroll, togglePause } = useLogAutoScroll({
-    logsContainerRef: logsContainerRef as MutableRefObject<HTMLDivElement>,
+  const { handleUserScroll, isFollowing, toggleFollowing } = useLogAutoScroll({
+    scrollContainerRef: logsContainerRef,
     filteredLogs
   });
 
@@ -52,11 +52,11 @@ const LogsViewer: FC = () => {
         selectedLevels={selectedLevels}
         onLevelChange={toggleLogLevel}
         onClear={clearLogs}
-        isPaused={isPaused}
-        onPauseToggle={togglePause}
+        isFollowing={isFollowing}
         isLevelFilterOpen={isLevelFilterOpen}
         setIsLevelFilterOpen={setIsLevelFilterOpen}
-        levelFilterRef={levelFilterRef as MutableRefObject<HTMLDivElement>}
+        levelFilterRef={levelFilterRef}
+        onToggleFollowing={toggleFollowing}
       />
 
       {/* Active filter chips */}
@@ -71,8 +71,9 @@ const LogsViewer: FC = () => {
       {/* Log entries display */}
       <LogDisplay
         filteredLogs={filteredLogs}
-        logsContainerRef={logsContainerRef as MutableRefObject<HTMLDivElement>}
+        scrollContainerRef={logsContainerRef}
         onUserScroll={handleUserScroll}
+        isFollowing={isFollowing}
       />
     </div>
   );

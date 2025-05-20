@@ -1,4 +1,4 @@
-import { FC, MutableRefObject } from 'react';
+import { FC, RefObject } from 'react';
 import { LogEntry } from '../hooks/useLogStream';
 
 interface LogLevelFilterProps {
@@ -6,7 +6,7 @@ interface LogLevelFilterProps {
   onLevelChange: (level: LogEntry['level']) => void;
   isLevelFilterOpen: boolean;
   setIsLevelFilterOpen: (isOpen: boolean) => void;
-  levelFilterRef: MutableRefObject<HTMLDivElement>;
+  levelFilterRef: RefObject<HTMLDivElement | null>
 }
 
 // SVG icon component

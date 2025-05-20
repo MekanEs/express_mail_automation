@@ -1,45 +1,45 @@
-import { useState, useEffect, useCallback, MutableRefObject } from 'react';
+import { useState, useCallback, RefObject } from 'react';
 import { LogEntry } from './useLogStream';
 
+const SCROLL_THRESHOLD = 10; // Порог для определения "близости" к низу
+
 interface UseLogAutoScrollParams {
-  logsContainerRef: MutableRefObject<HTMLDivElement>;
+  scrollContainerRef: RefObject<HTMLDivElement | null>;
   filteredLogs: LogEntry[];
 }
 
-export const useLogAutoScroll = ({ logsContainerRef, filteredLogs }: UseLogAutoScrollParams) => {
-  const [isPaused, setIsPaused] = useState(false);
+export const useLogAutoScroll = ({ scrollContainerRef, filteredLogs }: UseLogAutoScrollParams) => {
+  const [shouldFollow, setShouldFollow] = useState(true);
 
-  // Auto-scroll to bottom when filtered logs change
-  useEffect(() => {
-    if (!isPaused && logsContainerRef.current) {
-      const { scrollHeight, clientHeight } = logsContainerRef.current;
-      logsContainerRef.current.scrollTop = scrollHeight - clientHeight;
-    }
-  }, [filteredLogs, isPaused, logsContainerRef]);
-
-  // Handler for user scroll action
   const handleUserScroll = useCallback(() => {
-    if (logsContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.current;
-      // If user scrolled up from the bottom, pause auto-scrolling
-      // Allow a small tolerance to avoid false positives
-      if (scrollHeight - scrollTop - clientHeight > 20) {
-        if (!isPaused) setIsPaused(true);
-      } else {
-        // Optionally, if user scrolled to bottom, we could unpause
-        // if (isPaused) setIsPaused(false);
+    const scroller = scrollContainerRef.current;
+    if (scroller) {
+      const { scrollTop, scrollHeight, clientHeight } = scroller;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const isNearBottom = distanceFromBottom < SCROLL_THRESHOLD;
+
+      if (isNearBottom && !shouldFollow) {
+        setShouldFollow(true);
+      } else if (!isNearBottom && shouldFollow) {
+        setShouldFollow(false);
       }
     }
-  }, [isPaused, logsContainerRef]);
+  }, [shouldFollow, scrollContainerRef]);
 
-  // Toggle pause/follow state manually
-  const togglePause = () => {
-    setIsPaused(!isPaused);
-  };
+  const toggleFollowing = useCallback(() => {
+    setShouldFollow(prevState => {
+      const nextState = !prevState;
+      if (nextState && scrollContainerRef.current) {
+        const scroller = scrollContainerRef.current;
+        scroller.scrollTop = scroller.scrollHeight;
+      }
+      return nextState;
+    });
+  }, [scrollContainerRef]);
 
   return {
-    isPaused,
+    isFollowing: shouldFollow,
     handleUserScroll,
-    togglePause
+    toggleFollowing,
   };
 };

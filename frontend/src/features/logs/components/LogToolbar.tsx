@@ -1,4 +1,4 @@
-import { FC, ChangeEvent, MutableRefObject } from 'react';
+import { FC, ChangeEvent, RefObject } from 'react';
 import { LogEntry } from '../hooks/useLogStream';
 import { LogLevelFilter } from './LogLevelFilter';
 
@@ -8,11 +8,11 @@ interface LogToolbarProps {
   selectedLevels: Set<LogEntry['level']>;
   onLevelChange: (level: LogEntry['level']) => void;
   onClear: () => void;
-  isPaused: boolean;
-  onPauseToggle: () => void;
   isLevelFilterOpen: boolean;
   setIsLevelFilterOpen: (isOpen: boolean) => void;
-  levelFilterRef: MutableRefObject<HTMLDivElement>;
+  levelFilterRef: RefObject<HTMLDivElement | null>
+  isFollowing: boolean;
+  onToggleFollowing: () => void;
 }
 
 // SVG icon component
@@ -35,11 +35,11 @@ export const LogToolbar: FC<LogToolbarProps> = ({
   selectedLevels,
   onLevelChange,
   onClear,
-  isPaused,
-  onPauseToggle,
   isLevelFilterOpen,
   setIsLevelFilterOpen,
-  levelFilterRef
+  levelFilterRef,
+  isFollowing,
+  onToggleFollowing
 }) => {
   // Helper function to generate button classes
   const getButtonClass = (primary = false, active = false) =>
@@ -86,10 +86,10 @@ export const LogToolbar: FC<LogToolbarProps> = ({
         Очистить
       </button>
       <button
-        className={getButtonClass(false, isPaused)}
-        onClick={onPauseToggle}
+        className={getButtonClass(false, !isFollowing)}
+        onClick={onToggleFollowing}
       >
-        {isPaused ? 'Следовать' : 'Пауза'}
+        {!isFollowing ? 'Следовать' : 'Пауза'}
       </button>
     </div>
   );

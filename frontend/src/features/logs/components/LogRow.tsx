@@ -1,4 +1,4 @@
-import { FC, Fragment } from 'react';
+import { FC, Fragment, memo } from 'react';
 import { LogEntry } from '../hooks/useLogStream';
 
 interface LogRowProps {
@@ -6,7 +6,7 @@ interface LogRowProps {
   logKey: string | number;
 }
 
-export const LogRow: FC<LogRowProps> = ({ logEntry, logKey }) => {
+export const LogRow: FC<LogRowProps> = memo(({ logEntry, logKey }) => {
   if (!logEntry) return null;
 
   const getLogColor = (level: LogEntry['level']): string => {
@@ -29,7 +29,7 @@ export const LogRow: FC<LogRowProps> = ({ logEntry, logKey }) => {
       <span className="flex-grow min-w-0 pt-px">
         {logEntry.message.map((msgPart, i) => (
           <Fragment key={i}>
-            <span className="break-all whitespace-pre-wrap">
+            <span className="break-all whitespace-pre-wrap leading-relaxed">
               {typeof msgPart === 'object' ? JSON.stringify(msgPart) : String(msgPart)}
             </span>
             {' '}
@@ -38,4 +38,4 @@ export const LogRow: FC<LogRowProps> = ({ logEntry, logKey }) => {
       </span>
     </div>
   );
-};
+});
