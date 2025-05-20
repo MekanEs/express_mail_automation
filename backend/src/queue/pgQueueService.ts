@@ -8,7 +8,7 @@ let runner: Runner | null = null;
 
 export const initializeQueue = async () => {
   if (!env.DATABASE_URL) {
-    logger.error('DATABASE_URL не определен в переменных окружения!');
+    logger.error('DATABASE_URL не определен в переменных окружения!', true);
     throw new Error('DATABASE_URL not configured.');
   }
   try {
@@ -25,34 +25,34 @@ export const initializeQueue = async () => {
       // concurrency: 0,        // Вариант 4 (дополнительно): указать, что нет воркеров
       // -------------------------
     });
-    logger.info('[PG Queue Service] Graphile-Worker раннер инициализирован для добавления задач.');
+    logger.info('[PG Queue Service] Graphile-Worker раннер инициализирован для добавления задач.', true);
   } catch (error) {
-    logger.error('[PG Queue Service] Ошибка инициализации Graphile-Worker раннера:', error);
+    logger.error('[PG Queue Service] Ошибка инициализации Graphile-Worker раннера:', error, true);
     throw error;
   }
 };
 
 export const addProcessJob = async (payload: ProcessJobData): Promise<string> => {
   if (!runner) {
-    logger.error('[PG Queue Service] Graphile-Worker раннер не инициализирован. Невозможно добавить задачу.');
+    logger.error('[PG Queue Service] Graphile-Worker раннер не инициализирован. Невозможно добавить задачу.', true);
     throw new Error('Queue service not initialized.');
   }
   try {
     const job = await runner.addJob('processEmail', payload);
     // graphile-worker возвращает job.id как BigInt, преобразуем в строку, если нужно
     const jobIdString = String(job.id);
-    logger.info(`[PG Queue Service] Задача 'processEmail' добавлена в очередь. Graphile-Worker ID: ${jobIdString}`);
+    logger.info(`[PG Queue Service] Задача 'processEmail' добавлена в очередь. Graphile-Worker ID: ${jobIdString}`, true);
     return jobIdString;
   } catch (error) {
-    logger.error('[PG Queue Service] Ошибка при добавлении задачи в очередь:', error);
+    logger.error('[PG Queue Service] Ошибка при добавлении задачи в очередь:', error, true);
     throw error;
   }
 };
 
 export const releaseQueue = async () => {
   if (runner) {
-    logger.info('[PG Queue Service] Закрытие Graphile-Worker раннера...');
+    logger.info('[PG Queue Service] Закрытие Graphile-Worker раннера...', true);
     await runner.stop();
-    logger.info('[PG Queue Service] Graphile-Worker раннер закрыт.');
+    logger.info('[PG Queue Service] Graphile-Worker раннер закрыт.', true);
   }
 }

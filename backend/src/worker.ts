@@ -5,17 +5,50 @@ import { env } from './configs/supabase_env';
 import { logger } from './utils/logger';
 import { GraphileWorkerLoggerAdapter } from './utils/graphileWorkerLoggerAdapter';
 import processEmailTask from './worker_tasks/processEmail';
+import { EventEmitter } from 'events';
+
+// Определяем интерфейсы для событий graphile-worker
+interface WorkerJob {
+  id: string | number;
+  task_identifier: string;
+  [key: string]: any;
+}
+
+interface WorkerInstance {
+  workerId: string;
+  [key: string]: any;
+}
+
+interface JobCompleteEvent {
+  worker: WorkerInstance;
+  job: WorkerJob;
+  error: Error | null;
+}
+
 const startWorker = async () => {
   if (!env.DATABASE_URL) {
-    logger.error('DATABASE_URL не определен в переменных окружения для воркера!');
+    logger.error('DATABASE_URL не определен в переменных окружения для воркера!', true);
     throw new Error('DATABASE_URL not configured for worker.');
   }
 
-  logger.info('[Worker] Запуск Graphile-Worker...');
+  logger.info('[Worker] Запуск Graphile-Worker...', true);
   const taskList = {
     processEmail: processEmailTask,
   };
   const loggerAdapterInstance = new GraphileWorkerLoggerAdapter(logger);
+
+  // Создаем объект eventEmitter для перехвата и фильтрации событий
+  const workerEvents = new EventEmitter();
+
+  // Отключаем логирование деталей задач, сохраняя только базовую информацию о выполнении
+  workerEvents.on('job:complete', ({ worker, job, error }: JobCompleteEvent) => {
+    // Для завершенных задач processEmail скрываем детали, но сохраняем факт завершения
+    if (job.task_identifier === 'processEmail') {
+      // Логируем только основную информацию, без метаданных
+      logger.info(`[Worker Task: processEmail] Процесс обработки для ID: ${job.id} завершен.`, true);
+    }
+  });
+
   // Запускаем раннер в режиме воркера
   const runner = await run({
     connectionString: env.DATABASE_URL,
@@ -24,19 +57,20 @@ const startWorker = async () => {
     // Начните с небольшого числа, например, 1 или 2, особенно если задачи ресурсоемкие
     concurrency: 2,
     logger: loggerAdapterInstance as unknown as Logger,
+    events: workerEvents, // Передаем наш eventEmitter для перехвата событий
+
     // pollInterval: 1000, // Интервал опроса БД в мс (Graphile-worker также использует LISTEN/NOTIFY)
-    // Используем наш логгер
   }, taskList,);
 
-  logger.info('[Worker] Graphile-Worker запущен и слушает задачи.');
+  logger.info('[Worker] Graphile-Worker запущен и слушает задачи.', true);
 
   // Грамотное завершение воркера
   await runner.promise; // Ожидаем завершения раннера (например, по сигналу)
-  logger.info('[Worker] Graphile-Worker остановлен.');
+  logger.info('[Worker] Graphile-Worker остановлен.', true);
 };
 
 startWorker().catch(error => {
-  logger.error('[Worker] Критическая ошибка при запуске или работе воркера:', error);
+  logger.error('[Worker] Критическая ошибка при запуске или работе воркера:', error, true);
   process.exit(1);
 });
 
@@ -44,11 +78,11 @@ startWorker().catch(error => {
 // Graphile-worker сам обрабатывает SIGINT/SIGTERM по умолчанию,
 // но явное добавление может быть полезно для отладки или кастомной логики.
 process.on('SIGTERM', () => {
-  logger.info('[Worker] Получен сигнал SIGTERM. Graphile-Worker завершает работу...');
+  logger.info('[Worker] Получен сигнал SIGTERM. Graphile-Worker завершает работу...', true);
   // Graphile-worker runner.promise разрешится при получении сигнала
 });
 
 process.on('SIGINT', () => {
-  logger.info('[Worker] Получен сигнал SIGINT. Graphile-Worker завершает работу...');
+  logger.info('[Worker] Получен сигнал SIGINT. Graphile-Worker завершает работу...', true);
   // Graphile-worker runner.promise разрешится при получении сигнала
 });

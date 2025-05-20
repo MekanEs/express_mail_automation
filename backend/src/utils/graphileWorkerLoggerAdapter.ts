@@ -45,23 +45,24 @@ export class GraphileWorkerLoggerAdapter implements GraphileCompatibleLogger { /
     }
     const scopeString = scopeParts.length > 0 ? `[${scopeParts.join(' ')}] ` : '';
     const finalMessage = `${scopeString}${fullMessage}`;
+    const sendToFrontend = true; // Все логи из Graphile Worker по умолчанию отправляем на фронтенд
 
     switch (level.toLowerCase()) {
       case 'info':
-        this.customLogger.info(finalMessage);
+        this.customLogger.info(finalMessage, sendToFrontend);
         break;
       case 'warn':
       case 'warning':
-        this.customLogger.warn(finalMessage);
+        this.customLogger.warn(finalMessage, sendToFrontend);
         break;
       case 'error':
-        this.customLogger.error(finalMessage);
+        this.customLogger.error(finalMessage, sendToFrontend);
         break;
       case 'debug':
-        this.customLogger.debug(finalMessage);
+        this.customLogger.debug(finalMessage, sendToFrontend);
         break;
       default:
-        this.customLogger.info(`[${level.toUpperCase()}] ${finalMessage}`);
+        this.customLogger.info(`[${level.toUpperCase()}] ${finalMessage}`, sendToFrontend);
         break;
     }
   }

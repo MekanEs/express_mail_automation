@@ -5,20 +5,30 @@ import "reflect-metadata"; // Recommended to be here or ensure it's imported glo
 import { handleError } from '../../../utils/error-handler'; // Corrected path
 import { logger } from '../../../utils/logger'; // Corrected path
 
+// Вспомогательная функция для проверки существования файла
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.promises.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface IFileSystemService {
-  createDirectoryIfNotExists(dirPath: string): boolean;
-  deleteFile(filePath: string): boolean;
+  createDirectoryIfNotExists(dirPath: string): Promise<boolean>;
+  deleteFile(filePath: string): Promise<boolean>;
   cleanupDirectory(dirPath: string): Promise<void>;
   cleanUpTempDirectory(tempDirectories: string[], process_id: string): Promise<void>;
 }
 
 @injectable()
 export class FileSystemService implements IFileSystemService {
-  public createDirectoryIfNotExists(dirPath: string): boolean {
+  public async createDirectoryIfNotExists(dirPath: string): Promise<boolean> {
     if (!fs.existsSync(dirPath)) {
       try {
-        fs.mkdirSync(dirPath, { recursive: true });
-        logger.info(`[FS Service] Директория создана: ${dirPath}`);
+        await fs.promises.mkdir(dirPath, { recursive: true });
+        logger.debug(`[FS Service] Директория создана: ${dirPath}`);
         return true;
       } catch (err) {
         handleError(err, `[FS Service] Ошибка создания директории: ${dirPath}`, 'createDirectoryIfNotExists');
@@ -28,15 +38,16 @@ export class FileSystemService implements IFileSystemService {
     return true;
   }
 
-  public deleteFile(filePath: string): boolean {
+  public async deleteFile(filePath: string): Promise<boolean> {
     try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        logger.info(`[FS Service] Файл удален: ${filePath}`);
+      if (await fileExists(filePath)) {
+        await fs.promises.unlink(filePath);
+        logger.debug(`[FS Service] Файл удален: ${filePath}`);
         return true;
+      } else {
+        logger.warn(`[FS Service] Попытка удалить несуществующий файл: ${filePath}`);
+        return false;
       }
-      logger.warn(`[FS Service] Попытка удалить несуществующий файл: ${filePath}`);
-      return false; // Файл не найден, не ошибка, но и не удален
     } catch (err) {
       handleError(err, `[FS Service] Ошибка удаления файла: ${filePath}`, 'deleteFile');
       return false;
@@ -52,7 +63,7 @@ export class FileSystemService implements IFileSystemService {
     try {
       const files = await fs.promises.readdir(dirPath);
       if (files.length === 0) {
-        logger.info(`[FS Service] Директория ${dirPath} пуста, очистка не требуется.`);
+        logger.debug(`[FS Service] Директория ${dirPath} пуста, очистка не требуется.`);
         return;
       }
       for (const file of files) {
@@ -66,6 +77,7 @@ export class FileSystemService implements IFileSystemService {
             // Для рекурсивного удаления: await fs.promises.rm(filePath, { recursive: true, force: true });
           } else {
             await fs.promises.unlink(filePath);
+            logger.debug(`[FS Service] Файл удален при очистке: ${filePath}`);
           }
         } catch (err) {
           handleError(err, `[FS Service] Не удалось удалить элемент ${filePath} при очистке директории ${dirPath}`, 'cleanupDirectory.unlink');
@@ -82,7 +94,7 @@ export class FileSystemService implements IFileSystemService {
         await this.cleanupDirectory(dirPath);
         try {
           await fs.promises.rmdir(dirPath);
-          logger.info(`[Orchestration ID: ${process_id}] Удалена пустая директория ${dirPath}.`);
+          logger.debug(`[Orchestration ID: ${process_id}] Удалена пустая директория ${dirPath}.`);
         } catch (rmdirErr) {
           handleError(rmdirErr, `[Orchestration ID: ${process_id}] Не удалось удалить директорию ${dirPath}`);
         }

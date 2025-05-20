@@ -128,4 +128,3 @@ export class ReportService implements IReportService {
   }
 }
 
-// export const reportService = new ReportService();

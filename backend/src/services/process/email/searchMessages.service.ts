@@ -36,7 +36,7 @@ export class SearchMessagesService implements ISearchMessagesService {
   ): Promise<number[]> {
     const criteriaString = JSON.stringify(criteria); // Для логирования
     try {
-      logger.info(`[SearchMessages Service] ${logContext} Поиск сообщений с критериями: ${criteriaString}`);
+      logger.debug(`[SearchMessages Service] ${logContext} Поиск сообщений с критериями: ${criteriaString}`);
       const uids: number[] = await client.search(criteria, { uid: true });
       logger.info(`[SearchMessages Service] ${logContext} Найдено ${uids.length} UID(ов) по критериям: ${criteriaString}.`);
       return uids;
@@ -61,10 +61,10 @@ export class SearchMessagesService implements ISearchMessagesService {
       const fromCriteria: SearchObject = { from: fromEmail };
       const unseenCriteria: SearchObject = { seen: false };
 
-      logger.info(`[SearchMessages Service] Поиск писем от ${fromEmail} (всех)`);
+      logger.debug(`[SearchMessages Service] Поиск писем от ${fromEmail} (всех)`);
       const listFrom = await client.search(fromCriteria, { uid: true });
 
-      logger.info(`[SearchMessages Service] Поиск непрочитанных писем (всех)`);
+      logger.debug(`[SearchMessages Service] Поиск непрочитанных писем (всех)`);
       const listUnseen = await client.search(unseenCriteria, { uid: true });
 
       const resultUids = listFrom.filter(uid => listUnseen.includes(uid));

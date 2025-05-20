@@ -37,8 +37,6 @@ export class ProcessOrchestrationService implements IProcessOrchestrationService
       config,
     } = params;
 
-    logger.info(`[Orchestration ID: ${process_id}] Запущен процесс обработки почты.`);
-
     const tempDirectories: string[] = [];
     let browser: Browser | null = null;
 
@@ -90,8 +88,6 @@ export class ProcessOrchestrationService implements IProcessOrchestrationService
       }
 
       await this.fileSystemService.cleanUpTempDirectory(tempDirectories, process_id)
-
-      logger.info(`[Orchestration ID: ${process_id}] Завершение всего процесса обработки почты.`);
     }
   }
 }

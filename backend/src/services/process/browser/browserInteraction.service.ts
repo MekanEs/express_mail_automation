@@ -64,7 +64,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
       ]
     };
     try {
-      logger.info(`[Browser Service] Запуск браузера Puppeteer (headless: ${headless})...`);
+      logger.debug(`[Browser Service] Запуск браузера Puppeteer (headless: ${headless})...`);
       const browser = await puppeteer.launch(options);
       logger.info(`[Browser Service] Браузер Puppeteer успешно запущен.`);
       return browser;
@@ -77,14 +77,14 @@ export class BrowserInteractionService implements IBrowserInteractionService {
   public async closeBrowser(browser: Browser | null): Promise<void> {
     if (browser && browser.connected) {
       try {
-        logger.info('[Browser Service] Закрытие браузера Puppeteer...');
+        logger.debug('[Browser Service] Закрытие браузера Puppeteer...');
         await browser.close();
         logger.info('[Browser Service] Браузер Puppeteer успешно закрыт.');
       } catch (err) {
         handleError(err, '[Browser Service] Ошибка при закрытии браузера Puppeteer', 'closeBrowser');
       }
     } else {
-      logger.info('[Browser Service] Браузер не был запущен или уже закрыт.');
+      logger.debug('[Browser Service] Браузер не был запущен или уже закрыт.');
     }
   }
 
@@ -99,7 +99,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
 
       this.reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
-      logger.info(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
+      logger.debug(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
 
 
 
@@ -114,10 +114,10 @@ export class BrowserInteractionService implements IBrowserInteractionService {
 
   private async openExternalLinkPage(page: Page, task: BrowserTask, report: ProcessReport): Promise<void> {
     if (!task.linkToOpen) {
-      logger.info(`[Browser Service] Нет ссылки для открытия для письма UID: ${task.uid}.`);
+      logger.debug(`[Browser Service] Нет ссылки для открытия для письма UID: ${task.uid}.`);
       return;
     }
-    logger.info(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
+    logger.debug(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
     this.reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
 
     try {
@@ -144,7 +144,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     report: ProcessReport,
   ): Promise<void> {
     if (!tasks || tasks.length === 0) {
-      logger.info('[Browser Service] Нет задач для обработки в браузере.');
+      logger.debug('[Browser Service] Нет задач для обработки в браузере.');
       return;
     }
 

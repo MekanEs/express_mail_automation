@@ -18,7 +18,7 @@ export interface IImapClientService {
 export class ImapClientService implements IImapClientService {
   public createImapClient(user: string, host: string, password?: string, token?: string): ImapFlow {
     const config = createImapConfig({ user, host, password, token, log: false });
-    logger.info(`[IMAP Client] Создана конфигурация IMAP для пользователя ${user}`);
+    logger.debug(`[IMAP Client] Создана конфигурация IMAP для пользователя ${user}`);
     return new ImapFlow(config);
   }
 
@@ -37,9 +37,9 @@ export class ImapClientService implements IImapClientService {
     try {
       if (client.usable) {
         await client.logout();
-        logger.info(`[IMAP Client] Выход из IMAP клиента выполнен для ${userEmail}.`);
+        logger.debug(`[IMAP Client] Выход из IMAP клиента выполнен для ${userEmail}.`);
       } else {
-        logger.info(`[IMAP Client] IMAP клиент уже вышел из системы или недоступен для ${userEmail}.`);
+        logger.debug(`[IMAP Client] IMAP клиент уже вышел из системы или недоступен для ${userEmail}.`);
       }
     } catch (logoutErr) {
       logger.error(`[IMAP Client] Ошибка при выходе из IMAP клиента для ${userEmail}:`, logoutErr);
@@ -48,9 +48,9 @@ export class ImapClientService implements IImapClientService {
 
   public async getMailboxLock(client: ImapFlow, mailboxPath: string): Promise<MailboxLockObject | null> {
     try {
-      logger.info(`[IMAP Client] Попытка блокировки ящика: ${mailboxPath}`);
+      logger.debug(`[IMAP Client] Попытка блокировки ящика: ${mailboxPath}`);
       const lock = await client.getMailboxLock(mailboxPath);
-      logger.info(`[IMAP Client] Ящик ${mailboxPath} успешно заблокирован.`);
+      logger.debug(`[IMAP Client] Ящик ${mailboxPath} успешно заблокирован.`);
       return lock;
     } catch (err) {
       handleError(err, `[IMAP Client] Не удалось заблокировать почтовый ящик ${mailboxPath}`, 'getMailboxLock');
@@ -61,7 +61,7 @@ export class ImapClientService implements IImapClientService {
   public async releaseMailboxLock(lock: MailboxLockObject, mailboxPath: string): Promise<void> {
     try {
       await lock.release();
-      logger.info(`[IMAP Client] Блокировка с ящика ${mailboxPath} снята.`);
+      logger.debug(`[IMAP Client] Блокировка с ящика ${mailboxPath} снята.`);
     } catch (releaseErr) {
       logger.error(`[IMAP Client] Ошибка при снятии блокировки с ящика ${mailboxPath}:`, releaseErr);
     }

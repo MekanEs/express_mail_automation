@@ -102,7 +102,6 @@ export const useProcessForm = (options: UseProcessFormOptions = {}): UseProcessF
       repliesCount
     };
 
-    console.log('Submitting process data:', processData);
     startProcessMutation.mutate(processData);
   };
 

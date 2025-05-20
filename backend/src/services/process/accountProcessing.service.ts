@@ -37,7 +37,7 @@ export class AccountProcessingService implements IAccountProcessingService {
   private client: ImapFlow | null = null;
   private async _initializeImapConnection(account: Account, providerConfig: ProviderConfig): Promise<ImapFlow | null> {
     const userEmail = account.email;
-    logger.info(`[AccountProcessing] Initializing IMAP connection for: ${userEmail}`);
+    logger.debug(`[AccountProcessing] Initializing IMAP connection for: ${userEmail}`);
     const client = this.imapClientService.createImapClient(
       userEmail,
       providerConfig.host,
@@ -54,19 +54,19 @@ export class AccountProcessingService implements IAccountProcessingService {
   }
 
   private _prepareAccountEnvironment(tempDirPath: string, accountEmail: string, process_id: string): void {
-    logger.info(`[AccountProcessing] Preparing environment for account: ${accountEmail}, process_id: ${process_id}`);
+    logger.debug(`[AccountProcessing] Preparing environment for account: ${accountEmail}, process_id: ${process_id}`);
     this.fileSystemService.createDirectoryIfNotExists(tempDirPath);
   }
 
   private async _discoverMailboxes(client: ImapFlow, userEmail: string): Promise<{ sentMailboxPath: string | null; draftMailboxPath: string | null }> {
-    logger.info(`[AccountProcessing] Discovering mailboxes for: ${userEmail}`);
+    logger.debug(`[AccountProcessing] Discovering mailboxes for: ${userEmail}`);
     const sentMailboxPath = await this.mailboxDiscoveryService.findSentMailbox(client, userEmail);
     const draftMailboxPath = await this.mailboxDiscoveryService.findDraftMailbox(client, userEmail);
     return { sentMailboxPath, draftMailboxPath };
   }
 
   private async _handleSpamFolders(client: ImapFlow, providerConfig: ProviderConfig, fromEmail: string, report: ProcessReport): Promise<void> {
-    logger.info(`[AccountProcessing] Handling spam folders for: ${fromEmail}`);
+    logger.debug(`[AccountProcessing] Handling spam folders for: ${fromEmail}`);
     const spamResult = await this.spamHandlingService.processAllSpamFolders(
       client,
       providerConfig.spam,
@@ -174,10 +174,10 @@ export class AccountProcessingService implements IAccountProcessingService {
 
         if (config.minDelayBetweenEmailsMs && config.maxDelayBetweenEmailsMs) {
           const delay = Math.floor(Math.random() * (config.maxDelayBetweenEmailsMs - config.minDelayBetweenEmailsMs + 1)) + config.minDelayBetweenEmailsMs;
-          logger.info(`[AccountProcessing] Delaying for ${delay}ms (random between ${config.minDelayBetweenEmailsMs}ms and ${config.maxDelayBetweenEmailsMs}ms)`);
+          logger.debug(`[AccountProcessing] Delaying for ${delay}ms (random between ${config.minDelayBetweenEmailsMs}ms and ${config.maxDelayBetweenEmailsMs}ms)`);
           await new Promise((r) => setTimeout(r, delay));
         } else if (config.minDelayBetweenEmailsMs) {
-          logger.info(`[AccountProcessing] Delaying for ${config.minDelayBetweenEmailsMs}ms (fixed)`);
+          logger.debug(`[AccountProcessing] Delaying for ${config.minDelayBetweenEmailsMs}ms (fixed)`);
           await new Promise((r) => setTimeout(r, config.minDelayBetweenEmailsMs));
         }
       }
@@ -199,7 +199,7 @@ export class AccountProcessingService implements IAccountProcessingService {
 
   public async finalizeAccountProcessing(userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
     this.reportService.finalizeReportStatus(report);
-    logger.info(report)
+    logger.debug(report);
     await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
     if (this.client) {
       await this.imapClientService.disconnectClient(this.client, userEmail);

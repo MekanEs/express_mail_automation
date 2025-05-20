@@ -7,6 +7,7 @@ interface LogPayload {
     level: 'info' | 'warn' | 'error' | 'debug';
     message: unknown[];
     timestamp: string;
+    sendToFrontend?: boolean;
 }
 
 export class CustomLogger {
@@ -14,36 +15,85 @@ export class CustomLogger {
         // возможно, сюда позже добавишь настройки уровня логирования
     }
 
-    private emitLog(level: LogPayload['level'], ...message: unknown[]): void {
+    private emitLog(level: LogPayload['level'], sendToFrontend: boolean, ...message: unknown[]): void {
         const payload: LogPayload = {
             level,
             message,
             timestamp: new Date().toISOString(),
+            sendToFrontend,
         };
-        if (process.env.IS_WORKER === 'true') {
-            this.sendLogToApi(payload);
-        } else {
-            // Иначе (в API-процессе) эмитируем локально для SSE
-            loggerEvents.emit('log', payload);
+
+        // Отправляем или эмитируем только если уровень не 'debug'
+        // и если указано, что нужно отправлять на фронтенд
+        if (payload.level !== 'debug' && payload.sendToFrontend) {
+            if (process.env.IS_WORKER === 'true') {
+                this.sendLogToApi(payload);
+            } else {
+                // Иначе (в API-процессе) эмитируем локально для SSE
+                loggerEvents.emit('log', payload);
+            }
         }
-        console.log(...message); // Оставляем вывод в консоль в обоих случаях
+
+        // Оставляем вывод в консоль для всех уровней, включая debug,
+        // если это необходимо для локальной отладки на бэкенде.
+        // Если debug логи не нужны даже в консоли бэкенда,
+        // можно перенести console.log внутрь условия if (payload.level !== 'debug')
+        // или изменить методы debug(), info() и т.д.
+        if (level === 'debug' && process.env.NODE_ENV !== 'development') {
+            // В продакшене не выводим debug логи даже в консоль бэкенда,
+            // чтобы не засорять ее. В development оставляем.
+        } else {
+            console.log(`[${level.toUpperCase()}]`, ...message); // Добавил уровень в консольный вывод для ясности
+        }
     }
 
     public info(...message: unknown[]): void {
-        console.log('INFO', ...message);
-        this.emitLog('info', ...message);
+        // console.log('INFO', ...message); // Этот console.log дублируется в emitLog
+        const lastArg = message[message.length - 1];
+        let sendToFrontend = false;
+        let msgArgs = message;
+
+        if (typeof lastArg === 'boolean') {
+            sendToFrontend = lastArg;
+            msgArgs = message.slice(0, -1);
+        }
+        this.emitLog('info', sendToFrontend, ...msgArgs);
     }
 
     public warn(...message: unknown[]): void {
-        this.emitLog('warn', ...message);
+        const lastArg = message[message.length - 1];
+        let sendToFrontend = false;
+        let msgArgs = message;
+
+        if (typeof lastArg === 'boolean') {
+            sendToFrontend = lastArg;
+            msgArgs = message.slice(0, -1);
+        }
+        this.emitLog('warn', sendToFrontend, ...msgArgs);
     }
 
     public error(...message: unknown[]): void {
-        this.emitLog('error', ...message);
+        const lastArg = message[message.length - 1];
+        let sendToFrontend = false;
+        let msgArgs = message;
+
+        if (typeof lastArg === 'boolean') {
+            sendToFrontend = lastArg;
+            msgArgs = message.slice(0, -1);
+        }
+        this.emitLog('error', sendToFrontend, ...msgArgs);
     }
 
     public debug(...message: unknown[]): void {
-        this.emitLog('debug', ...message);
+        const lastArg = message[message.length - 1];
+        let sendToFrontend = false;
+        let msgArgs = message;
+
+        if (typeof lastArg === 'boolean') {
+            sendToFrontend = lastArg;
+            msgArgs = message.slice(0, -1);
+        }
+        this.emitLog('debug', sendToFrontend, ...msgArgs);
     }
     private async sendLogToApi(payload: LogPayload): Promise<void> {
         // Эта функция будет вызываться только в контексте Worker'а
