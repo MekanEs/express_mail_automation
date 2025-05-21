@@ -20,10 +20,10 @@ export async function checkAccounts({
     try {
       await client.connect();
       connected.push(account.email);
-      logger.info(`аккаунт ${account.email} подключен`)
+      logger.info(`аккаунт ${account.email} подключен`, true)
     } catch (err) {
       if ((account.provider === 'google' || account.provider === 'mailru') && account.refresh_token) {
-        logger.info(`обновляем токен для ${account.email}`)
+        logger.info(`обновляем токен для ${account.email}`, true)
         const new_acces_token = await getAccessToken(account.refresh_token, account.provider);
         if (!new_acces_token) {
           return;
@@ -33,7 +33,7 @@ export async function checkAccounts({
           .from('user_accounts')
           .update({ access_token: new_acces_token })
           .eq('id', account.id);
-        logger.info(`получили новый token для  ${account.email}`)
+        logger.info(`получили новый token для  ${account.email}`, true)
         connected.push(account.email || '');
       } else {
         throw err;

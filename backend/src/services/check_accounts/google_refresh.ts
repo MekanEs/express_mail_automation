@@ -2,7 +2,6 @@ import { logger } from "../../utils/logger";
 
 export const getAccessToken = async (refresh_token: string, provider: string) => {
   if (provider === 'google') {
-    logger.info(`обновляем токен для google`)
     const client_id = process.env.GOOGLE_CLIENT_ID;
     const client_secret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -31,7 +30,6 @@ export const getAccessToken = async (refresh_token: string, provider: string) =>
     return data.access_token;
   }
   else if (provider === 'mailru') {
-    logger.info('refresh token for mailru')
     const client_id = process.env.MAILRU_CLIENT_ID;
     const client_secret = process.env.MAILRU_CLIENT_SECRET;
 

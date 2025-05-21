@@ -1,14 +1,12 @@
 import { useState, useCallback, RefObject } from 'react';
-import { LogEntry } from './useLogStream';
 
 const SCROLL_THRESHOLD = 10; // Порог для определения "близости" к низу
 
 interface UseLogAutoScrollParams {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
-  filteredLogs: LogEntry[];
 }
 
-export const useLogAutoScroll = ({ scrollContainerRef, filteredLogs }: UseLogAutoScrollParams) => {
+export const useLogAutoScroll = ({ scrollContainerRef, }: UseLogAutoScrollParams) => {
   const [shouldFollow, setShouldFollow] = useState(true);
 
   const handleUserScroll = useCallback(() => {
