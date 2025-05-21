@@ -22,7 +22,9 @@ export const ProcessForm: FC<ProcessFormProps> = ({
     setRepliesCount,
     handleSubmit,
     isPending,
-    formErrors
+    formErrors,
+    headlessMode,
+    setHeadlessMode
   } = useProcessForm();
 
   return (
@@ -89,6 +91,26 @@ export const ProcessForm: FC<ProcessFormProps> = ({
             max={100}
             error={formErrors.repliesCount}
           />
+        </div>
+
+        <div className="flex flex-col gap-2 border p-2 rounded mt-2 bg-gray-300 border-gray-400 hover:border-gray-300 hover:bg-gray-100">
+          <label htmlFor="headlessMode" className="text-sm text-gray-600">
+            Режим запуска браузера
+            <p className="text-xs text-gray-400">
+              Выберите, как должен быть запущен браузер для обработки.
+            </p>
+          </label>
+          <select
+            id="headlessMode"
+            value={String(headlessMode)}
+            onChange={(e) => {
+              setHeadlessMode(e.target.value === 'true');
+            }}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white"
+          >
+            <option value="false">С интерфейсом (GUI)</option>
+            <option value="true">Headless</option>
+          </select>
         </div>
 
         <div className='flex justify-center'>

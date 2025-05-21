@@ -7,6 +7,7 @@ interface UseProcessFormOptions {
   initialLimit?: number;
   initialOpenRate?: number;
   initialRepliesCount?: number;
+  initialHeadlessMode?: boolean;
 }
 
 interface FormErrors {
@@ -25,6 +26,8 @@ interface UseProcessFormReturn {
   setOpenRate: React.Dispatch<React.SetStateAction<number>>;
   repliesCount: number;
   setRepliesCount: React.Dispatch<React.SetStateAction<number>>;
+  headlessMode: boolean | undefined;
+  setHeadlessMode: React.Dispatch<React.SetStateAction<boolean | undefined>>;
   handleSubmit: (
     event: React.FormEvent<HTMLFormElement>,
     selectedAccounts: SelectableAccount[],
@@ -39,6 +42,7 @@ export const useProcessForm = (options: UseProcessFormOptions = {}): UseProcessF
   const [limit, setLimit] = useState(options.initialLimit ?? 10);
   const [openRate, setOpenRate] = useState(options.initialOpenRate ?? 70);
   const [repliesCount, setRepliesCount] = useState(options.initialRepliesCount ?? 0);
+  const [headlessMode, setHeadlessMode] = useState<boolean | undefined>(options.initialHeadlessMode ?? true);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   // Получаем мутацию запуска процесса
@@ -99,7 +103,8 @@ export const useProcessForm = (options: UseProcessFormOptions = {}): UseProcessF
         .filter((email): email is string => email !== null),
       limit,
       openRate,
-      repliesCount
+      repliesCount,
+      headlessMode
     };
 
     startProcessMutation.mutate(processData);
@@ -112,6 +117,8 @@ export const useProcessForm = (options: UseProcessFormOptions = {}): UseProcessF
     setOpenRate,
     repliesCount,
     setRepliesCount,
+    headlessMode,
+    setHeadlessMode,
     handleSubmit,
     isPending: startProcessMutation.isPending,
     formErrors

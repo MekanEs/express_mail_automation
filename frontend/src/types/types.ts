@@ -105,6 +105,7 @@ export interface Pagination {
  * @property limit - The maximum number of emails to process per account (optional).
  * @property openRate - The percentage of processed emails for which links should be opened (optional).
  * @property repliesCount - The number of replies to send per account (optional).
+ * @property headlessMode - The mode of headless processing (optional).
  */
 export interface ProcessRequestBody {
     accounts: Account[];
@@ -112,6 +113,7 @@ export interface ProcessRequestBody {
     limit?: number;
     openRate?: number;
     repliesCount?: number;
+    headlessMode?: boolean;
 }
 
 /**

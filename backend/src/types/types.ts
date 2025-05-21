@@ -28,6 +28,7 @@ export interface ProcessRequestBody {
   limit?: number;
   openRate?: number;
   repliesCount?: number;
+  headlessMode?: boolean;
 }
 
 export interface ProcessConfig {
@@ -47,6 +48,7 @@ export interface StartProcessingParams {
   process_id: string;
   baseOutputPath: string;
   config: ProcessConfig; // Вместо отдельных полей
+  headlessMode?: boolean;
 }
 
 // Обновить AccountProcessingParams

@@ -35,13 +35,14 @@ export class ProcessOrchestrationService implements IProcessOrchestrationService
       process_id,
       baseOutputPath,
       config,
+      headlessMode
     } = params;
 
     const tempDirectories: string[] = [];
     let browser: Browser | null = null;
 
     try {
-      browser = await this.browserInteractionService.launchBrowser(false);
+      browser = await this.browserInteractionService.launchBrowser(headlessMode ?? false);
 
       for (const account of accounts) {
         const providerConfig = getConfig(account.provider);

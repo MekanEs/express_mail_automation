@@ -23,7 +23,7 @@ export interface BrowserTask {
 }
 
 export interface IBrowserInteractionService {
-  launchBrowser(headless: undefined | boolean | "shell"): Promise<Browser | null>;
+  launchBrowser(headless: boolean | undefined): Promise<Browser | null>;
   closeBrowser(browser: Browser | null): Promise<void>;
   processTasksWithBrowser(
     browser: Browser | null,
@@ -47,12 +47,11 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     this.reportService = reportService;
   }
 
-  public async launchBrowser(headless: boolean | "shell" | undefined = false): Promise<Browser | null> {
-    // headless: "new" - рекомендуемый современный режим
+  public async launchBrowser(headless: boolean | undefined = false): Promise<Browser | null> {
     // headless: true - старый headless
     // headless: false - для отладки
     const options: LaunchOptions = {
-      headless: headless,
+      headless: headless, // Тип теперь boolean | undefined
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -192,5 +191,3 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     // await page.setViewport({ width: 1280, height: 800 });
   }
 }
-
-// export const browserInteractionService = new BrowserInteractionService(fileSystemService, reportService); // Original singleton export, now handled by DI

@@ -12,7 +12,7 @@ class ProcessController {
     req: Request<Record<string, string>, Record<string, string>, ProcessRequestBody>,
     res: Response,
   ): Promise<void> {
-    const { accounts, emails, limit, openRate, repliesCount } = req.body;
+    const { accounts, emails, limit, openRate, repliesCount, headlessMode } = req.body;
 
     if (!accounts || accounts.length === 0 || !emails || emails.length === 0) {
       res.status(400).send({ message: 'Параметры "accounts" и "emails" обязательны и не должны быть пустыми.' });
@@ -35,6 +35,7 @@ class ProcessController {
       emails: emails.filter((email): email is string => email !== null),
       config: processConfig, // Use the created config object
       baseOutputPath: 'files',
+      headlessMode: headlessMode // Добавляем headlessMode в payload
     };
 
     try {

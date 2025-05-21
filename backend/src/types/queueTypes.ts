@@ -6,4 +6,5 @@ export interface ProcessJobData {
   emails: string[];
   config: ProcessConfig;
   baseOutputPath: string;
+  headlessMode?: boolean;
 }
