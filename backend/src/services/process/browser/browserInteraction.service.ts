@@ -5,7 +5,7 @@ import { handleError } from '../../../utils/error-handler';
 // import { fileSystemService } from '../utils/fileSystem.service'; // To be injected
 // import { reportService } from '../utils/report.service'; // To be injected
 import puppeteer from 'puppeteer-extra';
-import { Browser, LaunchOptions, Page } from 'puppeteer';
+import { Browser, LaunchOptions, Page, Frame, HTTPResponse, } from 'puppeteer';
 import { injectable, inject } from 'inversify';
 import "reflect-metadata";
 import { TYPES } from '../../../common/types.di';
@@ -119,19 +119,88 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     logger.debug(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
     this.reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
 
-    try {
-      await page.goto(task.linkToOpen, {
-        waitUntil: 'networkidle2',
-        timeout: 30000, // Таймаут для внешних ссылок может быть больше
-      });
-      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000)); // Случайная задержка
+    let finalUrl = task.linkToOpen;
+    const responses = new Map<string, HTTPResponse>();
+    let linkSuccessfullyOpened = false;
 
-      this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
-      logger.info(`[Browser Service] Внешняя ссылка ${task.linkToOpen} (UID: ${task.uid}) успешно открыта.`, true);
+    // Собираем ответы для отслеживания редиректов
+    page.on('response', (response) => responses.set(response.url(), response));
+
+    try {
+      // Пытаемся перейти по ссылке
+      await page.goto(task.linkToOpen, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      });
+      finalUrl = page.url();
+
+      // Ссылка успешно открыта через goto
+      if (responses.size > 0) {
+        // Были редиректы, считаем успешным открытием
+        logger.info(`[Browser Service] Ссылка ${task.linkToOpen} (UID: ${task.uid}) прошла через ${responses.size} ответов/редиректов. Финальный URL: ${finalUrl}. Считается успешно открытой.`);
+        this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+        linkSuccessfullyOpened = true;
+
+        // Проверяем, была ли страница авторизации (только для логирования)
+        const finalResponse = responses.get(finalUrl) || (responses.size > 0 ? Array.from(responses.values()).pop() : null);
+        const status = finalResponse ? finalResponse.status() : 0;
+
+        if (status === 401 || status === 403) {
+          logger.warn(`[Browser Service] Финальный URL ${finalUrl} (UID: ${task.uid}) вернул статус ${status} (требуется авторизация), но ссылка считается успешно открытой.`);
+        } else if (status !== 0 && !(status >= 200 && status < 300)) {
+          logger.warn(`[Browser Service] Финальный URL ${finalUrl} (UID: ${task.uid}) вернул нестандартный статус ${status}, но ссылка считается успешно открытой.`);
+        }
+
+        // Обычная случайная задержка из старого кода
+        await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000));
+      }
+      else {
+        // Не было редиректов, проверяем статус финальной страницы
+        try {
+          await page.waitForNetworkIdle({ idleTime: 1000, timeout: 15000 });
+        } catch (e) {
+          logger.warn(`[Browser Service] Таймаут ожидания network idle для ${finalUrl} (UID: ${task.uid}). Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+        }
+
+        const finalResponse = responses.get(finalUrl) || null;
+        const status = finalResponse ? finalResponse.status() : 0;
+
+        if (status === 401 || status === 403) {
+          // Страница авторизации, считаем успешным
+          logger.warn(`[Browser Service] Ссылка ${task.linkToOpen} (UID: ${task.uid}) привела на страницу авторизации: ${finalUrl} (Статус: ${status}). Ссылка считается успешно открытой.`);
+          this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+          linkSuccessfullyOpened = true;
+        } else if (status >= 200 && status < 300) {
+          // Успешное открытие
+          logger.info(`[Browser Service] Ссылка ${finalUrl} (из ${task.linkToOpen}, UID: ${task.uid}) успешно открыта. Статус: ${status}`, true);
+          this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+          linkSuccessfullyOpened = true;
+          await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000)); // Случайная задержка
+        } else {
+          // Явная ошибка
+          const errorMessage = `Ошибка при открытии ${task.linkToOpen} (UID: ${task.uid}). URL: ${finalUrl}, Статус: ${status}`;
+          logger.error(`[Browser Service] ${errorMessage}`);
+          this.reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
+        }
+      }
     } catch (err) {
-      const errorMessage = `Ошибка при открытии внешней ссылки ${task.linkToOpen} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
-      handleError(err, errorMessage, 'openExternalLinkPage');
-      this.reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
+      // Ошибка навигации, логируем для отладки
+      logger.debug(`[Browser Service] Ошибка при открытии ${task.linkToOpen} (UID: ${task.uid}). Собрано ${responses.size} ответов/редиректов.`);
+
+      // Если были редиректы до ошибки, считаем ссылку успешно открытой
+      if (responses.size > 0) {
+        const lastUrl = Array.from(responses.keys()).pop() || task.linkToOpen;
+        const lastStatus = responses.get(lastUrl)?.status() || 0;
+        logger.warn(`[Browser Service] Несмотря на ошибку, было зафиксировано ${responses.size} ответов/редиректов. Последний URL: ${lastUrl}, статус: ${lastStatus}. Ссылка считается успешно открытой (UID: ${task.uid}).`);
+        this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
+      } else {
+        // Если редиректов не было, это действительно ошибка
+        const errorMessage = `Критическая ошибка при открытии ${task.linkToOpen} (UID: ${task.uid}). Ошибка: ${err instanceof Error ? err.message : String(err)}`;
+        handleError(err, errorMessage, 'openExternalLinkPage');
+        this.reportService.updateReportWithLinkStats(report, 0, 0, errorMessage); // links_errors
+      }
+    } finally {
+      page.removeAllListeners('response');
     }
   }
 

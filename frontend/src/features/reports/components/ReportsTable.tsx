@@ -161,7 +161,7 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({
                                                     <th scope="col" onClick={() => onSortChange('emails_found')}>Найдено/Обработано{renderSortArrow('emails_found')}</th>
                                                     <th scope="col">Отправлено ответов</th>
                                                     <th scope="col" onClick={() => onSortChange('created_at')}>Дата{renderSortArrow('created_at')}</th>
-                                                    <th scope="col">Открыто ссылок</th>
+                                                    <th scope="col">Попыток/Открыто-ссылок</th>
                                                     <th scope="col">Найдено спама</th>
                                                     <th scope="col">Перемещено спама</th>
                                                     {/* Consider adding a details button/column here if row click for details is removed */}
