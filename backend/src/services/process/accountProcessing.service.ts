@@ -46,7 +46,7 @@ export class AccountProcessingService implements IAccountProcessingService {
     );
 
     if (!(await this.imapClientService.connectClient(client, userEmail))) {
-      logger.error(`[AccountProcessing] Failed to connect to IMAP for ${userEmail}.`);
+      logger.error(`[AccountProcessing] Failed to connect to IMAP for ${userEmail}.`, true);
       return null;
     }
     this.client = client
@@ -140,7 +140,7 @@ export class AccountProcessingService implements IAccountProcessingService {
 
     const lock = await this.imapClientService.getMailboxLock(client, mailboxPath);
     if (!lock) {
-      logger.warn(`[AccountProcessing] Failed to open mailbox ${mailboxPath} for ${userEmail}, skipping.`);
+      logger.warn(`[AccountProcessing] Failed to open mailbox ${mailboxPath} for ${userEmail}, skipping.`, true);
       this.reportService.updateReportWithEmailStats(report, 0, 0, `Failed to lock mailbox: ${mailboxPath}`);
       return { browserTasks, finalRemainingReplies: currentRemainingReplies };
     }
@@ -150,14 +150,14 @@ export class AccountProcessingService implements IAccountProcessingService {
       this.reportService.updateReportWithEmailStats(report, messageUids.length);
 
       const uidsToProcess = messageUids.slice(0, config.limit);
-      logger.info(`[AccountProcessing] Found ${messageUids.length} emails in ${mailboxPath}, will process ${uidsToProcess.length} (limit: ${config.limit})`);
+      logger.info(`[AccountProcessing] Found ${messageUids.length} emails in ${mailboxPath}, will process ${uidsToProcess.length} (limit: ${config.limit})`, true);
 
       const messagesToMarkAsSeen: number[] = [];
 
       for (const uid of uidsToProcess) {
         const message = await client.fetchOne(uid.toString(), { source: true, uid: true, envelope: true, headers: true }, { uid: true });
         if (!message) {
-          logger.warn(`[AccountProcessing] Failed to fetch message UID ${uid} from ${mailboxPath}`);
+          logger.warn(`[AccountProcessing] Failed to fetch message UID ${uid} from ${mailboxPath}`, true);
           this.reportService.updateReportWithEmailStats(report, 0, 0, `Failed to fetch message UID ${uid}`);
           continue;
         }
@@ -183,7 +183,7 @@ export class AccountProcessingService implements IAccountProcessingService {
       }
 
       if (messagesToMarkAsSeen.length > 0) {
-        logger.info(`[AccountProcessing] Marking ${messagesToMarkAsSeen.length} emails as read in ${mailboxPath}`);
+        logger.info(`[AccountProcessing] Marking ${messagesToMarkAsSeen.length} emails as read in ${mailboxPath}`, true);
         await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
       }
 
@@ -199,11 +199,10 @@ export class AccountProcessingService implements IAccountProcessingService {
 
   public async finalizeAccountProcessing(userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
     this.reportService.finalizeReportStatus(report);
-    logger.debug(report);
     await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
     if (this.client) {
       await this.imapClientService.disconnectClient(this.client, userEmail);
-      logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`);
+      logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`, true);
     }
 
   }
@@ -222,7 +221,7 @@ export class AccountProcessingService implements IAccountProcessingService {
   ): Promise<number> {
     const preparedReply = await this.replyService.prepareReply(message, userEmail);
     if (!preparedReply.mimeBuffer || !preparedReply.emailContent) {
-      logger.warn(`[AccountProcessing] Не удалось подготовить ответ для UID ${uid}.`);
+      logger.warn(`[AccountProcessing] Не удалось подготовить ответ для UID ${uid}.`, true);
       return remainingReplies;
     }
 
@@ -259,7 +258,7 @@ export class AccountProcessingService implements IAccountProcessingService {
     } = params;
 
     const userEmail = account.email;
-    logger.info(`[AccountProcessing] Start processing for account: ${userEmail}, sender: ${fromEmail}, process_id: ${process_id}`);
+    logger.info(`[AccountProcessing] Start processing for account: ${userEmail}, sender: ${fromEmail}, process_id: ${process_id}`, true);
 
     const client = await this._initializeImapConnection(account, providerConfig);
     if (!client) {

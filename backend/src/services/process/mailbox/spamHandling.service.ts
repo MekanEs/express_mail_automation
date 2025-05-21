@@ -56,12 +56,12 @@ export class SpamHandlingService implements ISpamHandlingService {
 
     const lock = await this.imapClientService.getMailboxLock(client, spamMailboxPath);
     if (!lock) {
-      logger.warn(`[Spam Handling] Не удалось заблокировать спам-папку ${spamMailboxPath}, пропускаем.`);
+      logger.warn(`[Spam Handling] Не удалось заблокировать спам-папку ${spamMailboxPath}, пропускаем.`, true);
       return { spamFoundInFolder, spamMovedInFolder, movedUidsMap };
     }
 
     try {
-      logger.info(`[Spam Handling] Поиск писем от ${fromEmail} в спам-папке: ${spamMailboxPath}`);
+      logger.info(`[Spam Handling] Поиск писем от ${fromEmail} в спам-папке: ${spamMailboxPath}`, true);
       const spamListUids = await this.searchMessagesService.search(
         client,
         { from: fromEmail },
@@ -69,19 +69,19 @@ export class SpamHandlingService implements ISpamHandlingService {
       );
 
       spamFoundInFolder = spamListUids.length;
-      logger.info(`[Spam Handling] Найдено ${spamFoundInFolder} писем от ${fromEmail} в ${spamMailboxPath}.`);
+      logger.info(`[Spam Handling] Найдено ${spamFoundInFolder} писем от ${fromEmail} в ${spamMailboxPath}.`, true);
 
       if (spamListUids.length > 0) {
         try {
-          logger.info(`[Spam Handling] Перемещение ${spamListUids.length} писем из ${spamMailboxPath} в ${targetInboxPath}.`);
+          logger.info(`[Spam Handling] Перемещение ${spamListUids.length} писем из ${spamMailboxPath} в ${targetInboxPath}.`, true);
           const { uidMap } = await client.messageMove(spamListUids, targetInboxPath, { uid: true });
 
           if (uidMap) {
             spamMovedInFolder = uidMap.size;
             uidMap.forEach((newUid, oldUid) => movedUidsMap.set(oldUid, newUid));
-            logger.info(`[Spam Handling] Успешно перемещено ${spamMovedInFolder} писем. UID map size: ${uidMap.size}`);
+            logger.info(`[Spam Handling] Успешно перемещено ${spamMovedInFolder} писем. UID map size: ${uidMap.size}`, true);
           } else {
-            logger.warn(`[Spam Handling] messageMove не вернул uidMap для ${spamMailboxPath}. Считаем, что перемещено ${spamListUids.length} (оценка).`);
+            logger.warn(`[Spam Handling] messageMove не вернул uidMap для ${spamMailboxPath}. Считаем, что перемещено ${spamListUids.length} (оценка).`, true);
             spamMovedInFolder = spamListUids.length;
           }
         } catch (moveErr) {
@@ -116,11 +116,11 @@ export class SpamHandlingService implements ISpamHandlingService {
     };
 
     if (!configuredSpamFolderNames || configuredSpamFolderNames.length === 0) {
-      logger.info("[Spam Handling] Список спам-папок не настроен, проверка спама пропускается.");
+      logger.info("[Spam Handling] Список спам-папок не настроен, проверка спама пропускается.", true);
       return overallResult;
     }
 
-    logger.info(`[Spam Handling] Начало проверки спам-папок: ${configuredSpamFolderNames.join(', ')} для отправителя ${fromEmail}`);
+    logger.info(`[Spam Handling] Начало проверки спам-папок: ${configuredSpamFolderNames.join(', ')} для отправителя ${fromEmail}`, true);
 
     for (const spamPath of configuredSpamFolderNames) {
       const { spamFoundInFolder, spamMovedInFolder, movedUidsMap } = await this.checkAndMoveSpamFromFolder(
@@ -134,7 +134,7 @@ export class SpamHandlingService implements ISpamHandlingService {
       movedUidsMap.forEach((newUid, oldUid) => overallResult.movedUidsMap.set(oldUid, newUid));
     }
 
-    logger.info(`[Spam Handling] Завершена проверка спам-папок. Всего найдено: ${overallResult.totalSpamFound}, перемещено: ${overallResult.totalSpamMoved}.`);
+    logger.info(`[Spam Handling] Завершена проверка спам-папок. Всего найдено: ${overallResult.totalSpamFound}, перемещено: ${overallResult.totalSpamMoved}.`, true);
     return overallResult;
   }
 }

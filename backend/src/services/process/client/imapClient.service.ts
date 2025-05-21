@@ -25,7 +25,7 @@ export class ImapClientService implements IImapClientService {
   public async connectClient(client: ImapFlow, userEmail: string): Promise<boolean> {
     try {
       await client.connect();
-      logger.info(`[IMAP Client] Успешное подключение к IMAP для ${userEmail}`);
+      logger.info(`[IMAP Client] Успешное подключение к IMAP для ${userEmail}`, true);
       return true;
     } catch (err) {
       handleError(err, `[IMAP Client] Ошибка при подключении к почте для ${userEmail}:`, 'connectClient');
@@ -63,7 +63,7 @@ export class ImapClientService implements IImapClientService {
       await lock.release();
       logger.debug(`[IMAP Client] Блокировка с ящика ${mailboxPath} снята.`);
     } catch (releaseErr) {
-      logger.error(`[IMAP Client] Ошибка при снятии блокировки с ящика ${mailboxPath}:`, releaseErr);
+      logger.error(`[IMAP Client] Ошибка при снятии блокировки с ящика ${mailboxPath}:`, releaseErr, true);
     }
   }
 

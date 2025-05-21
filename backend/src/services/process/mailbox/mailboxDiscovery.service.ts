@@ -34,10 +34,10 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
     );
 
     if (foundSentBox) {
-      logger.info(`[Mailbox Discovery] Найден ящик 'Отправленные' для ${user}: ${foundSentBox.path}`);
+      logger.info(`[Mailbox Discovery] Найден ящик 'Отправленные' для ${user}: ${foundSentBox.path}`, true);
       return foundSentBox.path;
     } else {
-      logger.warn(`[Mailbox Discovery] Не удалось автоматически обнаружить ящик 'Отправленные' для пользователя ${user}.`);
+      logger.warn(`[Mailbox Discovery] Не удалось автоматически обнаружить ящик 'Отправленные' для пользователя ${user}.`, true);
       return null;
     }
   }
@@ -53,10 +53,10 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
     );
 
     if (foundDraftBox) {
-      logger.info(`[Mailbox Discovery] Найден ящик 'Черновики' для ${user}: ${foundDraftBox.path}`);
+      logger.info(`[Mailbox Discovery] Найден ящик 'Черновики' для ${user}: ${foundDraftBox.path}`, true);
       return foundDraftBox.path;
     } else {
-      logger.warn(`[Mailbox Discovery] Не удалось автоматически обнаружить ящик 'Черновики' для пользователя ${user}.`);
+      logger.warn(`[Mailbox Discovery] Не удалось автоматически обнаружить ящик 'Черновики' для пользователя ${user}.`, true);
       return null;
     }
   }

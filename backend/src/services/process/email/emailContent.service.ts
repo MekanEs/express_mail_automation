@@ -99,9 +99,9 @@ export class EmailContentService implements IEmailContentService {
       });
 
       if (validLink) {
-        logger.info(`[EmailContent Service] Найдена валидная внешняя ссылка: ${validLink}`);
+        logger.info(`[EmailContent Service] Найдена валидная внешняя ссылка: ${validLink}`, true);
       } else {
-        logger.info('[EmailContent Service] Валидная внешняя ссылка не найдена в HTML.');
+        logger.info('[EmailContent Service] Валидная внешняя ссылка не найдена в HTML.', true);
       }
       return validLink;
 
@@ -123,7 +123,7 @@ export class EmailContentService implements IEmailContentService {
     const defaultResult: SavedEmailInfo = { filePath: null, extractedLink: null, subject: null };
 
     if (!message.source) {
-      logger.warn('[EmailContent Service] Отсутствует тело письма (message.source) для сохранения.');
+      logger.warn('[EmailContent Service] Отсутствует тело письма (message.source) для сохранения.', true);
       return defaultResult;
     }
 
@@ -135,7 +135,7 @@ export class EmailContentService implements IEmailContentService {
     defaultResult.subject = parsedEmail.subject;
 
     if (!parsedEmail.html) {
-      logger.info(`[EmailContent Service] Письмо (UID: ${message.uid}, Subject: "${parsedEmail.subject}") не содержит HTML-версии.`);
+      logger.info(`[EmailContent Service] Письмо (UID: ${message.uid}, Subject: "${parsedEmail.subject}") не содержит HTML-версии.`, true);
       return defaultResult;
     }
 
@@ -144,7 +144,7 @@ export class EmailContentService implements IEmailContentService {
     const extractedLink = this.extractFirstValidExternalLink(sanitizedHtml);
 
     if (!this.fileSystemService.createDirectoryIfNotExists(dirPath)) {
-      logger.error(`[EmailContent Service] Не удалось создать/получить доступ к директории ${dirPath} для сохранения письма.`);
+      logger.error(`[EmailContent Service] Не удалось создать/получить доступ к директории ${dirPath} для сохранения письма.`, true);
       return defaultResult;
     }
 
@@ -153,7 +153,7 @@ export class EmailContentService implements IEmailContentService {
 
     try {
       await fs.promises.writeFile(filePath, sanitizedHtml);
-      logger.info(`[EmailContent Service] HTML письма (UID: ${message.uid}) сохранен в: ${filePath}`);
+      logger.info(`[EmailContent Service] HTML письма (UID: ${message.uid}) сохранен в: ${filePath}`, true);
       return { filePath, extractedLink, subject: parsedEmail.subject };
     } catch (err) {
       handleError(err, `[EmailContent Service] Ошибка записи HTML письма (UID: ${message.uid}) в файл ${filePath}`, 'saveEmailForBrowser');

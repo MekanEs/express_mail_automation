@@ -72,9 +72,9 @@ export class ProcessOrchestrationService implements IProcessOrchestrationService
         }
         if (allBrowserTasksForAccount.length > 0 && browser) {
           await this.browserInteractionService.processTasksWithBrowser(browser, allBrowserTasksForAccount, config.openRate, report);
-          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Завершена обработка ${allBrowserTasksForAccount.length} задач в браузере.`);
+          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Завершена обработка ${allBrowserTasksForAccount.length} задач в браузере.`, true);
         } else {
-          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Нет задач для обработки в браузере или браузер недоступен.`);
+          logger.info(`[Orchestration ID: ${process_id}, Account: ${account.email}] Нет задач для обработки в браузере или браузер недоступен.`, true);
         }
         await this.accountProcessingService.finalizeAccountProcessing(account.email, report, providerConfig, emails.join(', '))
       }

@@ -38,7 +38,7 @@ export class SearchMessagesService implements ISearchMessagesService {
     try {
       logger.debug(`[SearchMessages Service] ${logContext} Поиск сообщений с критериями: ${criteriaString}`);
       const uids: number[] = await client.search(criteria, { uid: true });
-      logger.info(`[SearchMessages Service] ${logContext} Найдено ${uids.length} UID(ов) по критериям: ${criteriaString}.`);
+      logger.info(`[SearchMessages Service] ${logContext} Найдено ${uids.length} UID(ов) по критериям: ${criteriaString}.`, true);
       return uids;
     } catch (err) {
       handleError(err, `[SearchMessages Service] ${logContext} Ошибка при поиске сообщений (${criteriaString})`, 'search');
@@ -69,7 +69,7 @@ export class SearchMessagesService implements ISearchMessagesService {
 
       const resultUids = listFrom.filter(uid => listUnseen.includes(uid));
 
-      logger.info(`[SearchMessages Service] Найдено ${resultUids.length} непрочитанных писем от ${fromEmail}.`);
+      logger.info(`[SearchMessages Service] Найдено ${resultUids.length} непрочитанных писем от ${fromEmail}.`, true);
       return resultUids;
     } catch (err) {
       handleError(err, `[SearchMessages Service] Ошибка при поиске непрочитанных писем от ${fromEmail}`, 'searchUnseenFromSender');

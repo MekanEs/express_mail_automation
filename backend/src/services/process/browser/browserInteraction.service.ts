@@ -63,9 +63,9 @@ export class BrowserInteractionService implements IBrowserInteractionService {
       ]
     };
     try {
-      logger.debug(`[Browser Service] Запуск браузера Puppeteer (headless: ${headless})...`);
+      logger.debug(`[Browser Service] Запуск браузера Puppeteer (headless: ${headless})...`, true);
       const browser = await puppeteer.launch(options);
-      logger.info(`[Browser Service] Браузер Puppeteer успешно запущен.`);
+      logger.info(`[Browser Service] Браузер Puppeteer успешно запущен.`, true);
       return browser;
     } catch (err) {
       handleError(err, '[Browser Service] Ошибка при запуске браузера Puppeteer', 'launchBrowser');
@@ -78,12 +78,12 @@ export class BrowserInteractionService implements IBrowserInteractionService {
       try {
         logger.debug('[Browser Service] Закрытие браузера Puppeteer...');
         await browser.close();
-        logger.info('[Browser Service] Браузер Puppeteer успешно закрыт.');
+        logger.info('[Browser Service] Браузер Puppeteer успешно закрыт.', true);
       } catch (err) {
         handleError(err, '[Browser Service] Ошибка при закрытии браузера Puppeteer', 'closeBrowser');
       }
     } else {
-      logger.debug('[Browser Service] Браузер не был запущен или уже закрыт.');
+      logger.debug('[Browser Service] Браузер не был запущен или уже закрыт.', true);
     }
   }
 
@@ -127,7 +127,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000) + 1000)); // Случайная задержка
 
       this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
-      logger.info(`[Browser Service] Внешняя ссылка ${task.linkToOpen} (UID: ${task.uid}) успешно открыта.`);
+      logger.info(`[Browser Service] Внешняя ссылка ${task.linkToOpen} (UID: ${task.uid}) успешно открыта.`, true);
     } catch (err) {
       const errorMessage = `Ошибка при открытии внешней ссылки ${task.linkToOpen} (UID: ${task.uid}): ${err instanceof Error ? err.message : err}`;
       handleError(err, errorMessage, 'openExternalLinkPage');
@@ -148,7 +148,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     }
 
     if (!browser) {
-      logger.error('[Browser Service] Экземпляр браузера не передан, обработка задач прервана.');
+      logger.error('[Browser Service] Экземпляр браузера не передан, обработка задач прервана.', true);
       tasks.forEach(task => {
         this.reportService.updateReportWithEmailStats(report, 0, 0, `Browser instance not available for UID ${task.uid}`);
         if (task.filePath) this.fileSystemService.deleteFile(task.filePath); // Очистка, если файл был создан
@@ -157,7 +157,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
     }
 
     let linksToOpenCount = Math.ceil((tasks.length * openRatePercent) / 100);
-    logger.info(`[Browser Service] Всего задач: ${tasks.length}. Планируется открыть ссылок: ${linksToOpenCount}.`);
+    logger.info(`[Browser Service] Всего задач: ${tasks.length}. Планируется открыть ссылок: ${linksToOpenCount}.`, true);
 
     try {
       for (const task of tasks) {

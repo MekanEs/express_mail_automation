@@ -2,9 +2,9 @@ import { logger } from "./logger"
 
 export const handleError = (err: unknown, message?: string, functionName?: string) => {
   if (err instanceof Error) {
-    logger.error(sliceAndAddDots(err.name), sliceAndAddDots(message), functionName)
+    logger.error(sliceAndAddDots(err.name), sliceAndAddDots(message), functionName, true)
   } else {
-    logger.error('Неизвестная ошибка', functionName, message, err)
+    logger.error('Неизвестная ошибка', functionName, message, err, true)
   }
 }
 const sliceAndAddDots = (str: string | undefined) => {

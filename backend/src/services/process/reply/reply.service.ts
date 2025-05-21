@@ -138,17 +138,17 @@ export class ReplyService implements IReplyService {
 
       try {
         await transporter.verify();
-        logger.info(`[Reply Service] SMTP (STARTTLS, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`);
+        logger.info(`[Reply Service] SMTP (STARTTLS, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`, true);
       } catch (verifyErr) {
-        logger.warn(`[Reply Service] SMTP (STARTTLS, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${verifyErr instanceof Error ? verifyErr.message : verifyErr}. Пробуем SSL...`);
+        logger.warn(`[Reply Service] SMTP (STARTTLS, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${verifyErr instanceof Error ? verifyErr.message : verifyErr}. Пробуем SSL...`, true);
         transportConfig.port = 465; // SSL
         transportConfig.secure = true;
         transporter = nodemailer.createTransport(transportConfig);
         try {
           await transporter.verify();
-          logger.info(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`);
+          logger.info(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) соединение для ${emailContent.from} успешно проверено.`, true);
         } catch (sslErr) {
-          logger.warn(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${sslErr instanceof Error ? sslErr.message : sslErr}. Пробуем порт 25 (без шифрования)...`);
+          logger.warn(`[Reply Service] SMTP (SSL, ${smtpHost}:${transportConfig.port}) проверка не удалась для ${emailContent.from}: ${sslErr instanceof Error ? sslErr.message : sslErr}. Пробуем порт 25 (без шифрования)...`, true);
           transportConfig.port = 25; // Basic, no encryption
           transportConfig.secure = false;
           // transportConfig.requireTLS = false; // Явно указать, что TLS не обязателен
@@ -169,7 +169,7 @@ export class ReplyService implements IReplyService {
         envelope: { from: emailContent.from, to: [emailContent.to] }
       });
 
-      logger.info(`[Reply Service] Ответ успешно отправлен через SMTP на ${emailContent.to} от ${emailContent.from}. Message ID: ${info.messageId}`);
+      logger.info(`[Reply Service] Ответ успешно отправлен через SMTP на ${emailContent.to} от ${emailContent.from}. Message ID: ${info.messageId}`, true);
       return true;
     } catch (err) {
       handleError(err, `[Reply Service] Ошибка при отправке SMTP письма на ${emailContent.to} от ${emailContent.from}`, 'sendSmtpEmail');
@@ -188,19 +188,19 @@ export class ReplyService implements IReplyService {
     flags: string[] = ['\\Seen']
   ): Promise<boolean> {
     if (provider === 'google') {
-      logger.info(`[Reply Service] Для Google провайдера ответ автоматически сохраняется, пропуск appendEmailToMailbox.`);
+      logger.info(`[Reply Service] Для Google провайдера ответ автоматически сохраняется, пропуск appendEmailToMailbox.`, true);
       return true; // Считаем успешным, так как Gmail делает это сам
     }
 
     if (!mailboxPath) {
-      logger.warn(`[Reply Service] Не указан путь к ящику для сохранения письма (appendEmailToMailbox).`);
+      logger.warn(`[Reply Service] Не указан путь к ящику для сохранения письма (appendEmailToMailbox).`, true);
       return false;
     }
 
     try {
-      logger.info(`[Reply Service] Попытка добавления письма в ящик ${mailboxPath} с флагами ${flags.join(', ')}.`);
+      logger.info(`[Reply Service] Попытка добавления письма в ящик ${mailboxPath} с флагами ${flags.join(', ')}.`, true);
       const appendResult = await client.append(mailboxPath, emailBuffer, flags);
-      logger.info(`[Reply Service] Письмо успешно добавлено в ${mailboxPath}. Результат:`, appendResult.uid); // appendResult может содержать UID
+      logger.info(`[Reply Service] Письмо успешно добавлено в ${mailboxPath}. Результат:`, appendResult.uid, true); // appendResult может содержать UID
       return true;
     } catch (appendErr) {
       handleError(appendErr, `[Reply Service] Не удалось добавить письмо в ящик ${mailboxPath}`, 'appendEmailToMailbox');

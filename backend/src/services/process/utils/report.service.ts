@@ -31,7 +31,7 @@ export class ReportService implements IReportService {
     initialSpamFound: number = 0,
     initialSpamMoved: number = 0
   ): ProcessReport {
-    logger.info(`[Report Service] Инициализация отчета для process_id: ${process_id}, account: ${accountEmail}, sender: ${senderEmail}`);
+    logger.info(`[Report Service] Инициализация отчета для process_id: ${process_id}, account: ${accountEmail}, sender: ${senderEmail}`, true);
     return {
       process_id: process_id,
       status: 'partial_failure', // Начальный статус, изменится на success, если все ок
@@ -87,11 +87,11 @@ export class ReportService implements IReportService {
       }
       // Иначе остается 'partial_failure' или можно ввести 'failure', если много ошибок
     }
-    logger.info(`[Report Service] Финализирован статус отчета для process_id ${report.process_id}: ${report.status}`);
+    logger.info(`[Report Service] Финализирован статус отчета для process_id ${report.process_id}: ${report.status}`, true);
   }
 
   public async submitReport(report: ProcessReport, inboxPaths: string): Promise<void> {
-    logger.info(`[Report Service] Отправка отчета для process_id: ${report.process_id}, account: ${report.account}`);
+    logger.info(`[Report Service] Отправка отчета для process_id: ${report.process_id}, account: ${report.account}`, true);
 
     const reportDataToInsert: InsertReportType = {
       process_id: report.process_id,
@@ -120,7 +120,7 @@ export class ReportService implements IReportService {
         handleError(error, `[Report Service] Ошибка Supabase при отправке отчета для process_id: ${report.process_id}`, 'submitReport.insert');
         // Возможно, стоит пробросить ошибку, если отправка отчета критична
       } else {
-        logger.info(`[Report Service] Отчет для process_id ${report.process_id} успешно отправлен.`);
+        logger.info(`[Report Service] Отчет для process_id ${report.process_id} успешно отправлен.`, true);
       }
     } catch (err) {
       handleError(err, `[Report Service] Непредвиденная ошибка при отправке отчета для process_id: ${report.process_id}`, 'submitReport');

@@ -45,7 +45,7 @@ export class FileSystemService implements IFileSystemService {
         logger.debug(`[FS Service] Файл удален: ${filePath}`);
         return true;
       } else {
-        logger.warn(`[FS Service] Попытка удалить несуществующий файл: ${filePath}`);
+        logger.warn(`[FS Service] Попытка удалить несуществующий файл: ${filePath}`, true);
         return false;
       }
     } catch (err) {
@@ -55,9 +55,9 @@ export class FileSystemService implements IFileSystemService {
   }
 
   public async cleanupDirectory(dirPath: string): Promise<void> {
-    logger.info(`[FS Service] Начало очистки директории: ${dirPath}`);
+    logger.info(`[FS Service] Начало очистки директории: ${dirPath}`, true);
     if (!fs.existsSync(dirPath)) {
-      logger.warn(`[FS Service] Директория для очистки не найдена: ${dirPath}`);
+      logger.warn(`[FS Service] Директория для очистки не найдена: ${dirPath}`, true);
       return;
     }
     try {
@@ -73,7 +73,7 @@ export class FileSystemService implements IFileSystemService {
           const stat = await fs.promises.lstat(filePath);
           if (stat.isDirectory()) {
             // Если это директория, можно рекурсивно очистить или пропустить
-            logger.warn(`[FS Service] Обнаружена поддиректория ${filePath} при очистке. Пропускаем.`);
+            logger.warn(`[FS Service] Обнаружена поддиректория ${filePath} при очистке. Пропускаем.`, true);
             // Для рекурсивного удаления: await fs.promises.rm(filePath, { recursive: true, force: true });
           } else {
             await fs.promises.unlink(filePath);
@@ -83,7 +83,7 @@ export class FileSystemService implements IFileSystemService {
           handleError(err, `[FS Service] Не удалось удалить элемент ${filePath} при очистке директории ${dirPath}`, 'cleanupDirectory.unlink');
         }
       }
-      logger.info(`[FS Service] Директория ${dirPath} успешно очищена (или предпринята попытка очистки).`);
+      logger.info(`[FS Service] Директория ${dirPath} успешно очищена (или предпринята попытка очистки).`, true);
     } catch (err) {
       handleError(err, `[FS Service] Ошибка при чтении директории ${dirPath} для очистки`, 'cleanupDirectory.readdir');
     }
