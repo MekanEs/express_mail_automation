@@ -14,8 +14,8 @@ export interface StartProcessResponse {
 }
 export interface ProviderConfig {
   host: string;
-  mailboxes: string[];
-  spam: string[];
+  // mailboxes: string[]; // Удалено
+  // spam: string[]; // Удалено
   smtpHost: string;
 }
 

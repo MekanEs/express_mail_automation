@@ -1,4 +1,4 @@
-import { Account, ProviderConfig, AccountProcessingParams, ProcessConfig } from '../../types/types';
+import { Account, ProviderConfig, AccountProcessingParams, ProcessConfig, Provider } from '../../types/types';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { injectable, inject } from 'inversify';
@@ -35,6 +35,18 @@ export class AccountProcessingService implements IAccountProcessingService {
     @inject(TYPES.FileSystemService) private readonly fileSystemService: IFileSystemService
   ) { }
   private client: ImapFlow | null = null;
+
+  // Структура для хранения обнаруженных путей
+  private discoveredMailboxPaths: {
+    inbox?: string | null;
+    sent?: string | null;
+    drafts?: string | null;
+    trash?: string | null;
+    archive?: string | null;
+    spam?: string | null;
+    newsletters?: string[];
+  } = {};
+
   private async _initializeImapConnection(account: Account, providerConfig: ProviderConfig): Promise<ImapFlow | null> {
     const userEmail = account.email;
     logger.debug(`[AccountProcessing] Initializing IMAP connection for: ${userEmail}`);
@@ -58,19 +70,52 @@ export class AccountProcessingService implements IAccountProcessingService {
     this.fileSystemService.createDirectoryIfNotExists(tempDirPath);
   }
 
-  private async _discoverMailboxes(client: ImapFlow, userEmail: string): Promise<{ sentMailboxPath: string | null; draftMailboxPath: string | null }> {
-    logger.debug(`[AccountProcessing] Discovering mailboxes for: ${userEmail}`);
-    const sentMailboxPath = await this.mailboxDiscoveryService.findSentMailbox(client, userEmail);
-    const draftMailboxPath = await this.mailboxDiscoveryService.findDraftMailbox(client, userEmail);
-    return { sentMailboxPath, draftMailboxPath };
+  // Обновленный метод для обнаружения всех релевантных ящиков
+  private async _discoverAllMailboxes(
+    client: ImapFlow,
+    account: Account,
+    providerConfig: ProviderConfig
+  ): Promise<void> {
+    const userEmail = account.email;
+    const provider = account.provider;
+    logger.debug(`[AccountProcessing] Discovering all mailboxes for: ${userEmail} (provider: ${provider})`);
+    const params = { client, user: userEmail, provider, configuredPath: null };
+    // Передаем null или undefined, так как старых путей в конфиге больше нет
+    this.discoveredMailboxPaths.inbox = await this.mailboxDiscoveryService.findInboxMailbox(params);
+    this.discoveredMailboxPaths.sent = await this.mailboxDiscoveryService.findSentMailbox(params);
+    this.discoveredMailboxPaths.drafts = await this.mailboxDiscoveryService.findDraftMailbox(params);
+    this.discoveredMailboxPaths.trash = await this.mailboxDiscoveryService.findTrashMailbox(params);
+
+    this.discoveredMailboxPaths.spam = await this.mailboxDiscoveryService.findSpamMailbox(params);
+    this.discoveredMailboxPaths.newsletters = await this.mailboxDiscoveryService.findNewsletterMailboxes(params);
+
+    logger.info(`[AccountProcessing] Discovered mailboxes for ${userEmail}: ${JSON.stringify(this.discoveredMailboxPaths)}`, true);
+
+    // Валидация критичного ящика Inbox
+    if (!this.discoveredMailboxPaths.inbox) {
+      logger.error(`[AccountProcessing] Critical error: Inbox mailbox not found for ${userEmail}. Aborting processing for this account.`, true);
+      // Здесь можно бросить ошибку или установить флаг, чтобы прервать дальнейшую обработку этого аккаунта
+      throw new Error(`Inbox not found for ${userEmail}`);
+    }
   }
 
-  private async _handleSpamFolders(client: ImapFlow, providerConfig: ProviderConfig, fromEmail: string, report: ProcessReport): Promise<void> {
-    logger.debug(`[AccountProcessing] Handling spam folders for: ${fromEmail}`);
+  private async _handleSpamFolders(client: ImapFlow, account: Account, providerConfig: ProviderConfig, fromEmail: string, report: ProcessReport): Promise<void> {
+    logger.debug(`[AccountProcessing] Handling spam folders for: ${account.email}`);
+
+    if (!this.discoveredMailboxPaths.inbox) {
+      logger.warn(`[AccountProcessing] Inbox not found, cannot determine target for moving spam for ${account.email}. Skipping spam handling.`);
+      return;
+    }
+    const spamMailboxPath = this.discoveredMailboxPaths.spam;
+    if (!spamMailboxPath) {
+      logger.info(`[AccountProcessing] No spam folder discovered for ${account.email}. Skipping spam handling.`, true);
+      return;
+    }
+
     const spamResult = await this.spamHandlingService.processAllSpamFolders(
       client,
-      providerConfig.spam,
-      providerConfig.mailboxes[0],
+      [spamMailboxPath],
+      this.discoveredMailboxPaths.inbox,
       fromEmail
     );
     this.reportService.updateReportWithSpamStats(report, spamResult.totalSpamFound, spamResult.totalSpamMoved);
@@ -80,8 +125,6 @@ export class AccountProcessingService implements IAccountProcessingService {
     message: FetchMessageObject,
     client: ImapFlow,
     userEmail: string,
-    sentMailboxPath: string | null,
-    draftMailboxPath: string | null,
     config: ProcessConfig,
     report: ProcessReport,
     tempDirPath: string,
@@ -108,8 +151,8 @@ export class AccountProcessingService implements IAccountProcessingService {
       updatedRemainingReplies = await this._manageReplies(
         message,
         userEmail,
-        sentMailboxPath,
-        draftMailboxPath,
+        this.discoveredMailboxPaths.sent || null,
+        this.discoveredMailboxPaths.drafts || null,
         report,
         remainingReplies,
         providerConfig,
@@ -129,8 +172,6 @@ export class AccountProcessingService implements IAccountProcessingService {
     report: ProcessReport,
     account: Account,
     providerConfig: ProviderConfig,
-    sentMailboxPath: string | null,
-    draftMailboxPath: string | null,
     tempDirPath: string,
     initialRemainingReplies: number
   ): Promise<{ browserTasks: BrowserTask[], finalRemainingReplies: number }> {
@@ -163,7 +204,7 @@ export class AccountProcessingService implements IAccountProcessingService {
         }
 
         const { browserTask, updatedRemainingReplies: newRemainingReplies } = await this._processSingleEmail(
-          message, client, userEmail, sentMailboxPath, draftMailboxPath, config, report, tempDirPath, providerConfig, account, currentRemainingReplies
+          message, client, userEmail, config, report, tempDirPath, providerConfig, account, currentRemainingReplies
         );
         currentRemainingReplies = newRemainingReplies;
 
@@ -199,12 +240,13 @@ export class AccountProcessingService implements IAccountProcessingService {
 
   public async finalizeAccountProcessing(userEmail: string, report: ProcessReport, providerConfig: ProviderConfig, fromEmail: string): Promise<void> {
     this.reportService.finalizeReportStatus(report);
-    await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
+    // Используем обнаруженный inbox для отчета, если он есть, иначе N/A
+    const processedMailboxForReport = this.discoveredMailboxPaths.inbox || 'N/A';
+    await this.reportService.submitReport(report, processedMailboxForReport);
     if (this.client) {
       await this.imapClientService.disconnectClient(this.client, userEmail);
       logger.info(`[AccountProcessing] Finalized IMAP/SMTP processing for: ${userEmail}, sender: ${fromEmail}`, true);
     }
-
   }
 
   private async _manageReplies(
@@ -260,42 +302,82 @@ export class AccountProcessingService implements IAccountProcessingService {
     const userEmail = account.email;
     logger.info(`[AccountProcessing] Start processing for account: ${userEmail}, sender: ${fromEmail}, process_id: ${process_id}`, true);
 
+    // Обнуляем discoveredMailboxPaths для каждого нового аккаунта
+    this.discoveredMailboxPaths = {};
+
     const client = await this._initializeImapConnection(account, providerConfig);
     if (!client) {
       this.reportService.updateReportWithEmailStats(report, 0, 0, "IMAP connection failed");
       this.reportService.finalizeReportStatus(report);
-      await this.reportService.submitReport(report, providerConfig.mailboxes.join(', '));
+      await this.reportService.submitReport(report, 'Connection Failed');
+      return [];
+    }
+    this.client = client; // Убедимся что this.client установлен после успешного соединения
+
+    this._prepareAccountEnvironment(tempDirPath, userEmail, process_id);
+
+    try {
+      await this._discoverAllMailboxes(client, account, providerConfig); // Обнаружение всех ящиков
+    } catch (discoveryError) {
+      logger.error(`[AccountProcessing] Mailbox discovery failed for ${userEmail}: ${discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}. Aborting.`, true);
+      this.reportService.updateReportWithEmailStats(report, 0, 0, `Mailbox discovery failed: ${discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}`);
+      this.reportService.finalizeReportStatus(report);
+      await this.reportService.submitReport(report, 'Discovery Failed');
+      if (this.client) {
+        await this.imapClientService.disconnectClient(this.client, userEmail);
+      }
       return [];
     }
 
-    this._prepareAccountEnvironment(tempDirPath, userEmail, process_id);
-    const { sentMailboxPath, draftMailboxPath } = await this._discoverMailboxes(client, userEmail);
+    // Inbox должен быть найден, иначе _discoverAllMailboxes выбросит ошибку
+    const inboxPath = this.discoveredMailboxPaths.inbox!;
 
-    await this._handleSpamFolders(client, providerConfig, fromEmail, report);
+    await this._handleSpamFolders(client, account, providerConfig, fromEmail, report);
 
     const allBrowserTasks: BrowserTask[] = [];
     let overallRemainingReplies = config.repliesCount;
 
-    for (const mailboxPath of providerConfig.mailboxes) {
-      const { browserTasks, finalRemainingReplies } = await this._processMailbox(
-        mailboxPath,
-        client,
-        fromEmail,
-        config,
-        report,
-        account,
-        providerConfig,
-        sentMailboxPath,
-        draftMailboxPath,
-        tempDirPath,
-        overallRemainingReplies
-      );
-      allBrowserTasks.push(...browserTasks);
-      overallRemainingReplies = finalRemainingReplies;
+    // Основной цикл теперь по обнаруженному Inbox
+    logger.info(`[AccountProcessing] Processing main inbox: ${inboxPath} for ${userEmail}`);
+    const { browserTasks: inboxTasks, finalRemainingReplies: repliesAfterInbox } = await this._processMailbox(
+      inboxPath,
+      client,
+      fromEmail,
+      config,
+      report,
+      account,
+      providerConfig, // передаем для smtpHost и других не-путевых настроек
+      tempDirPath,
+      overallRemainingReplies
+    );
+    allBrowserTasks.push(...inboxTasks);
+    overallRemainingReplies = repliesAfterInbox;
 
+    // Дополнительно обрабатываем папки рассылок, если они есть
+    if (this.discoveredMailboxPaths.newsletters && this.discoveredMailboxPaths.newsletters.length > 0) {
+      for (const newsletterMailbox of this.discoveredMailboxPaths.newsletters) {
+        if (overallRemainingReplies <= 0 && config.repliesCount > 0) { // Если все ответы уже сделаны
+          logger.info(`[AccountProcessing] All replies sent, skipping further newsletter mailboxes for ${userEmail}.`);
+          break;
+        }
+        logger.info(`[AccountProcessing] Processing newsletter mailbox: ${newsletterMailbox} for ${userEmail}`);
+        const { browserTasks: newsletterTasks, finalRemainingReplies: repliesAfterNewsletter } = await this._processMailbox(
+          newsletterMailbox,
+          client,
+          fromEmail,
+          config,
+          report,
+          account,
+          providerConfig,
+          tempDirPath,
+          overallRemainingReplies
+        );
+        allBrowserTasks.push(...newsletterTasks);
+        overallRemainingReplies = repliesAfterNewsletter;
+      }
     }
 
-    // await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail);
+    // await this._finalizeAccountProcessing(client, userEmail, report, providerConfig, fromEmail); // this.client используется внутри
     return allBrowserTasks;
   }
 }
