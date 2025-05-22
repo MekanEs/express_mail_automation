@@ -117,7 +117,6 @@ export class BrowserInteractionService implements IBrowserInteractionService {
       return;
     }
     logger.debug(`[Browser Service] Попытка открытия внешней ссылки: ${task.linkToOpen} (из письма UID: ${task.uid})`);
-    this.reportService.foundLinks(report, 1);
     this.reportService.updateReportWithLinkStats(report, 1); // links_attemptedOpen
 
     const responses = new Map<string, HTTPResponse>();
@@ -189,7 +188,7 @@ export class BrowserInteractionService implements IBrowserInteractionService {
 
     let linksToOpenCount = Math.ceil((tasks.length * openRatePercent) / 100);
     logger.info(`[Browser Service] Всего задач: ${tasks.length}. Планируется открыть ссылок: ${linksToOpenCount}.`, true);
-
+    this.reportService.foundLinks(report, linksToOpenCount)
     try {
       for (const task of tasks) {
         const emailPage = await browser.newPage();
