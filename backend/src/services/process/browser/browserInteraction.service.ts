@@ -89,16 +89,16 @@ export class BrowserInteractionService implements IBrowserInteractionService {
 
   private async openLocalEmailPage(page: Page, task: BrowserTask, report: ProcessReport): Promise<void> {
     try {
-      await page.goto(`file://${task.filePath}`, { // Важно: file:// для локальных файлов
+      await page.goto(`file://${task.filePath}`, {
         waitUntil: 'networkidle2',
         timeout: 20000,
       });
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Прокрутка
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
 
-      this.reportService.updateReportWithEmailStats(report, 0, 1); // emails_processed инкрементируется
+      this.reportService.updateReportWithEmailStats(report, 0, 1);
       await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 500)); // Случайная задержка
-      logger.debug(`[Browser Service] Локальный файл письма ${task.filePath} (UID: ${task.uid}) успешно открыт и просмотрен.`);
+      logger.info(`[Browser Service] Локальный файл письма ${task.subject} (UID: ${task.uid}) успешно открыт и просмотрен.`, true);
 
 
 
