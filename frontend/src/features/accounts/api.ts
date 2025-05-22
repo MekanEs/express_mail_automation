@@ -1,4 +1,4 @@
-import { accounts, SelectableAccount } from '../../types/types'; // Adjusted path
+import { Accounts, SelectableAccount } from '../../types/types'; // Adjusted path
 import { handleApiResponse } from '../../shared/utils/apiUtils'; // Adjusted path
 import { BASE_API } from '../../shared/api/constants'; // Adjusted path
 
@@ -19,7 +19,7 @@ export const getAccounts = async (): Promise<SelectableAccount[]> => {
   return supabaseResponse.data || supabaseResponse || []; // Ensure data field is prioritized and fallback to empty array
 };
 
-export const checkAccounts = async (accountsToCheck: accounts): Promise<string[]> => {
+export const checkAccounts = async (accountsToCheck: Accounts): Promise<string[]> => {
   const response = await fetch(`${API_URL}/checkAccounts`, {
     method: 'POST',
     headers: {

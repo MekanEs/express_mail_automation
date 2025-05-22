@@ -1,10 +1,10 @@
-import { from_email } from "../../types/types";
+import { FromEmail } from "../../types/types";
 import { BASE_API } from "../../shared/api/constants";
 import { handleApiResponse } from "../../shared/utils/apiUtils";
 
 const API_URL = BASE_API;
 
-export const getEmails = async (): Promise<from_email[]> => {
+export const getEmails = async (): Promise<FromEmail[]> => {
   const response = await fetch(`${API_URL}/fromEmails`, {
     method: 'GET'
   });

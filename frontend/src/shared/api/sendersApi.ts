@@ -1,14 +1,14 @@
 import { BASE_API } from "./constants";
 import { handleApiResponse } from "../utils/apiUtils";
-import { from_email } from "../../types/types";
+import { FromEmail } from "../../types/types";
 
 const API_URL = BASE_API
 
 /**
  * Получение списка email адресов отправителей.
- * @returns Promise с массивом объектов from_email.
+ * @returns Promise с массивом объектов FromEmail.
  */
-export const getFromEmails = async (): Promise<from_email[]> => {
+export const getFromEmails = async (): Promise<FromEmail[]> => {
     const response = await fetch(`${API_URL}/fromEmails`); // Обращаемся к GET /api/from-emails
     const checkedResponse = await handleApiResponse(response);
     const data = await checkedResponse.json();

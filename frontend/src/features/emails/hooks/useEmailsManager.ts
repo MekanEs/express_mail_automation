@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addEmail, deleteEmail, getEmails } from "../api.ts";
 import toast from "react-hot-toast";
-import { from_email } from "../../../types/types";
+import { FromEmail } from "../../../types/types";
 import { useState } from "react";
 
 export const useEmailsManager = () => {
@@ -9,7 +9,7 @@ export const useEmailsManager = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
 
-  const { data: emails = [], isLoading } = useQuery<from_email[], Error>({
+  const { data: emails = [], isLoading } = useQuery<FromEmail[], Error>({
     queryKey: ['emails'],
     queryFn: getEmails,
   });
@@ -30,12 +30,12 @@ export const useEmailsManager = () => {
     mutationFn: deleteEmail,
     onSuccess: (_data, deletedEmailId) => {
       queryClient.invalidateQueries({ queryKey: ['emails'] });
-      const deletedEmailObject = emails.find((e: from_email) => e.id === deletedEmailId);
+      const deletedEmailObject = emails.find((e: FromEmail) => e.id === deletedEmailId);
       toast.success(`Email ${deletedEmailObject?.email || deletedEmailId} deleted.`);
       setSelectedIds(prev => prev.filter(id => id !== deletedEmailId));
     },
     onError: (error: Error, deletedEmailId: number) => {
-      const deletedEmailObject = emails.find((e: from_email) => e.id === deletedEmailId);
+      const deletedEmailObject = emails.find((e: FromEmail) => e.id === deletedEmailId);
       toast.error(`Failed to delete email ${deletedEmailObject?.email || deletedEmailId}: ${error.message}`);
     }
   });

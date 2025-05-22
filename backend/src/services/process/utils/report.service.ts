@@ -20,6 +20,7 @@ export interface IReportService {
   updateReportWithReplyStats(report: ProcessReport, replySent: boolean): void;
   finalizeReportStatus(report: ProcessReport): void;
   submitReport(report: ProcessReport, inboxPaths: string): Promise<void>;
+  foundLinks(report: ProcessReport, foundLinks: number): void;
 }
 
 @injectable()
@@ -43,7 +44,9 @@ export class ReportService implements IReportService {
       links: { found: 0, targetOpen: 0, attemptedOpen: 0, errors: 0, errorMessages: [] }
     };
   }
-
+  public foundLinks(report: ProcessReport, foundLinks: number): void {
+    report.links.found += foundLinks;
+  }
   public updateReportWithSpamStats(report: ProcessReport, spamFound: number, spamMoved: number): void {
     report.spam.found += spamFound;
     report.spam.moved += spamMoved;

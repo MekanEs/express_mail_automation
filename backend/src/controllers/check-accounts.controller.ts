@@ -6,16 +6,15 @@ class CheckAccountsController {
   public async checkAccounts(_req: Request, response: Response) {
     const { data: accounts } = await supabaseClient.from('user_accounts').select();
     const connected: string[] = [];
-
     if (!accounts) {
       return;
     }
-    
+
     const params: CheckAccountsParams = {
       accounts: accounts,
       connected
     };
-    
+
     await checkAccountsService(params);
     response.status(200).send(connected);
   }

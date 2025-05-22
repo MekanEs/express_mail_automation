@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { account, Provider, SelectableAccount } from '../../../types/types';
+import { Accounts, Account, Provider, SelectableAccount } from '../../../types/types';
 import { checkAccounts, getAccounts } from '../api';
 import { useAccountStatusCache } from './useAccountStatusCache';
 import toast from 'react-hot-toast';
@@ -38,7 +38,7 @@ export const useAccountsManager = (
 
   // Мутация для проверки аккаунтов
   const checkAccountsMutation = useMutation({
-    mutationFn: (accountsToCheck: account[]) => checkAccounts(accountsToCheck),
+    mutationFn: (accountsToCheck: Accounts) => checkAccounts(accountsToCheck),
     onSuccess: (data) => {
       saveChecked(data);
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -55,7 +55,7 @@ export const useAccountsManager = (
   };
 
   // Обработчик переключения выбора аккаунта
-  const toggleAccountSelection = (account: account, isSelected: boolean) => {
+  const toggleAccountSelection = (account: Account, isSelected: boolean) => {
     let newSelection: SelectableAccount[];
     if (isSelected) {
       const accountToAdd = accounts.find((acc) => acc.id === account.id);

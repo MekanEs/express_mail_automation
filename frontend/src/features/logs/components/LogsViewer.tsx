@@ -29,7 +29,6 @@ const LogsViewer: FC = () => {
   } = useLogFiltering({ allLogs });
   const { handleUserScroll, isFollowing, toggleFollowing } = useLogAutoScroll({
     scrollContainerRef: logsContainerRef,
-    filteredLogs
   });
 
   // Close level filter dropdown on outside click
