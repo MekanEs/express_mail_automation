@@ -4,6 +4,7 @@ import { checkAccounts as checkAccountsService, CheckAccountsParams } from '../s
 
 class CheckAccountsController {
   public async checkAccounts(_req: Request, response: Response) {
+    console.log('accounts to check', _req.body.accounts)
     const { data: accounts } = await supabaseClient.from('user_accounts').select();
     const connected: string[] = [];
     if (!accounts) {
@@ -11,7 +12,7 @@ class CheckAccountsController {
     }
 
     const params: CheckAccountsParams = {
-      accounts: accounts,
+      accounts: _req.body.accounts,
       connected
     };
 

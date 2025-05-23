@@ -33,6 +33,7 @@ const Accounts: FC<AccountsProps> = ({ selected, setSelected }) => {
         <div className="card-content">
             {/* Панель инструментов */}
             <AccountsToolbar
+                selected={selected}
                 onReload={reloadAccounts}
                 onCheckAccounts={handleCheck}
                 onSelectAll={selectAll}

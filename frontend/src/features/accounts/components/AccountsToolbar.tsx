@@ -1,8 +1,10 @@
 import { FC } from 'react';
+import { SelectableAccount } from '../../../types/types';
 
 interface AccountsToolbarProps {
+  selected: SelectableAccount[]
   onReload: () => void;
-  onCheckAccounts: () => void;
+  onCheckAccounts: (accounts: SelectableAccount[]) => void
   onSelectAll: () => void;
   onClearAll: () => void;
   isChecking: boolean;
@@ -12,6 +14,7 @@ interface AccountsToolbarProps {
 }
 
 export const AccountsToolbar: FC<AccountsToolbarProps> = ({
+  selected,
   onReload,
   onCheckAccounts,
   onSelectAll,
@@ -33,7 +36,7 @@ export const AccountsToolbar: FC<AccountsToolbarProps> = ({
       <h2 className="text-xl font-semibold text-text-primary mb-2">Аккаунты</h2>
       <div className="flex space-x-2">
         <button
-          onClick={onCheckAccounts}
+          onClick={() => onCheckAccounts(selected)}
           disabled={isChecking || totalAccountsCount === 0}
           className="btn btn-secondary"
         >

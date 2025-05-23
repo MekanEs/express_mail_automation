@@ -50,7 +50,7 @@ export const useAccountsManager = (
   });
 
   // Обработчик проверки аккаунтов
-  const handleCheck = () => {
+  const handleCheck = (accounts: SelectableAccount[]) => {
     checkAccountsMutation.mutate(accounts);
   };
 
