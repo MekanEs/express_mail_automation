@@ -47,5 +47,5 @@ export async function checkAccounts({
       }
     }
   }
-  logger.info(`[Check accounts] завершили процесс проверки. ${connectedAccsLength} аккаунтов подключено. ${newTokensLength} токенов обновлено`)
+  logger.info(`[Check accounts] завершили процесс проверки. ${connectedAccsLength} аккаунтов подключено. ${newTokensLength} токенов обновлено`, true)
 }

@@ -1,4 +1,4 @@
-import { Account, ProviderConfig, AccountProcessingParams, ProcessConfig, Provider } from '../../types/types';
+import { Account, ProviderConfig, AccountProcessingParams, ProcessConfig, } from '../../types/types';
 import { logger } from '../../utils/logger';
 import { handleError } from '../../utils/error-handler';
 import { injectable, inject } from 'inversify';
@@ -74,7 +74,6 @@ export class AccountProcessingService implements IAccountProcessingService {
   private async _discoverAllMailboxes(
     client: ImapFlow,
     account: Account,
-    providerConfig: ProviderConfig
   ): Promise<void> {
     const userEmail = account.email;
     const provider = account.provider;
@@ -317,7 +316,7 @@ export class AccountProcessingService implements IAccountProcessingService {
     this._prepareAccountEnvironment(tempDirPath, userEmail, process_id);
 
     try {
-      await this._discoverAllMailboxes(client, account, providerConfig); // Обнаружение всех ящиков
+      await this._discoverAllMailboxes(client, account,); // Обнаружение всех ящиков
     } catch (discoveryError) {
       logger.error(`[AccountProcessing] Mailbox discovery failed for ${userEmail}: ${discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}. Aborting.`, true);
       this.reportService.updateReportWithEmailStats(report, 0, 0, `Mailbox discovery failed: ${discoveryError instanceof Error ? discoveryError.message : String(discoveryError)}`);

@@ -5,6 +5,7 @@
  * @returns Исходный response, если он ok.
  * @throws Error - Если response не ok.
  */
+
 export const handleApiResponse = async (response: Response) => {
   if (!response.ok) {
     // Пытаемся получить сообщение об ошибке из JSON тела

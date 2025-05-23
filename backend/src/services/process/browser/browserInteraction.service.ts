@@ -5,7 +5,7 @@ import { handleError } from '../../../utils/error-handler';
 // import { fileSystemService } from '../utils/fileSystem.service'; // To be injected
 // import { reportService } from '../utils/report.service'; // To be injected
 import puppeteer from 'puppeteer-extra';
-import { Browser, LaunchOptions, Page, Frame, HTTPResponse, } from 'puppeteer';
+import { Browser, LaunchOptions, Page, HTTPResponse, } from 'puppeteer';
 import { injectable, inject } from 'inversify';
 import "reflect-metadata";
 import { TYPES } from '../../../common/types.di';

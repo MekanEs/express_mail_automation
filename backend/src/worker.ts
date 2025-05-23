@@ -1,3 +1,4 @@
+
 // backend/src/worker.ts
 import "reflect-metadata";
 import { Logger, run } from 'graphile-worker';
@@ -8,22 +9,7 @@ import processEmailTask from './worker_tasks/processEmail';
 import { EventEmitter } from 'events';
 
 // Определяем интерфейсы для событий graphile-worker
-interface WorkerJob {
-  id: string | number;
-  task_identifier: string;
-  [key: string]: any;
-}
 
-interface WorkerInstance {
-  workerId: string;
-  [key: string]: any;
-}
-
-interface JobCompleteEvent {
-  worker: WorkerInstance;
-  job: WorkerJob;
-  error: Error | null;
-}
 
 const startWorker = async () => {
   if (!env.DATABASE_URL) {
@@ -40,14 +26,7 @@ const startWorker = async () => {
   // Создаем объект eventEmitter для перехвата и фильтрации событий
   const workerEvents = new EventEmitter();
 
-  // Отключаем логирование деталей задач, сохраняя только базовую информацию о выполнении
-  workerEvents.on('job:complete', ({ worker, job, error }: JobCompleteEvent) => {
-    // Для завершенных задач processEmail скрываем детали, но сохраняем факт завершения
-    if (job.task_identifier === 'processEmail') {
-      // Логируем только основную информацию, без метаданных
-      logger.info(`[Worker Task: processEmail] Процесс обработки для ID: ${job.id} завершен.`, true);
-    }
-  });
+
 
   // Запускаем раннер в режиме воркера
   const runner = await run({

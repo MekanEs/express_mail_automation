@@ -1,4 +1,3 @@
-import { logger } from "../../utils/logger";
 
 export const getAccessToken = async (refresh_token: string, provider: string) => {
   if (provider === 'google') {

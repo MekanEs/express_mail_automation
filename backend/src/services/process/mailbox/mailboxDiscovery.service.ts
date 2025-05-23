@@ -107,7 +107,7 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
     allMailboxes: ListResponse[],
     fallbackLogic?: (mailboxes: ListResponse[], user: string, provider: Provider) => Promise<string | null>
   ): Promise<string | null> {
-    const { client, user, provider, configuredPath } = params;
+    const { user, provider, configuredPath } = params;
     // 1. Поиск по сконфигурированному пути
     if (configuredPath) {
       const foundByConfig = allMailboxes.find(box => box.path === configuredPath);
@@ -122,7 +122,7 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
 
     // 2. Поиск по SpecialUse флагу
     if (specialUseFlag) {
-      let effectiveSpecialUseFlag = specialUseFlag;
+      const effectiveSpecialUseFlag = specialUseFlag;
       if (mailboxType === 'inbox' && provider === 'google' && specialUseFlag === '\\Inbox') {
         const foundByGoogleAll = allMailboxes.find(box => box.specialUse === '\\All');
         if (foundByGoogleAll) {
@@ -193,7 +193,7 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
 
 
 
-    let path = await this._findSingleMailbox(
+    const path = await this._findSingleMailbox(
       params, mailboxType, typeForLog, '\\Inbox', allMailboxes, gmailFallback
     );
     if (!path) {
@@ -231,7 +231,7 @@ export class MailboxDiscoveryService implements IMailboxDiscoveryService {
     const allMailboxes = await this.listMailboxesSafe(params.client, params.user);
     const mailboxType: MailboxType = 'newsletters';
     const typeForLog = 'Рассылки/Новости';
-    let foundPaths: string[] = [];
+    const foundPaths: string[] = [];
 
     if (configuredPaths && configuredPaths.length > 0) {
       const verifiedConfigPaths: string[] = [];
