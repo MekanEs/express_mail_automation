@@ -14,11 +14,14 @@ export async function checkAccounts({
   accounts,
   connected
 }: CheckAccountsParams) {
+  let newTokensLength = 0
+  let connectedAccsLength = 0
   for (const account of accounts) {
     const providerConfig = getConfig(account.provider);
     const client = createImapClient(account.email, providerConfig.host, account.app_password ?? undefined, account.access_token ?? undefined);
     try {
       await client.connect();
+      connectedAccsLength++
       connected.push(account.email);
       logger.info(`аккаунт ${account.email} подключен`, true)
     } catch (err) {
@@ -28,12 +31,12 @@ export async function checkAccounts({
         if (!new_acces_token) {
           return;
         }
-
         await supabaseClient
           .from('user_accounts')
           .update({ access_token: new_acces_token })
           .eq('id', account.id);
         logger.info(`получили новый token для  ${account.email}`, true)
+        newTokensLength++
         connected.push(account.email || '');
       } else {
         throw err;
@@ -44,4 +47,5 @@ export async function checkAccounts({
       }
     }
   }
+  logger.info(`[Check accounts] завершили процесс проверки. ${connectedAccsLength} аккаунтов подключено. ${newTokensLength} токенов обновлено`)
 }
