@@ -26,7 +26,7 @@ export const SenderAggregatesTable: React.FC = () => {
   }
 
   return (
-    <div className="sender-aggregates-table mt-5">
+    <div className="sender-aggregates-table mt-5 p-4 border border-gray-300 rounded">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Статистика по отправителям</h2>
         <div className="flex space-x-2">
@@ -47,8 +47,8 @@ export const SenderAggregatesTable: React.FC = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white rounded-lg overflow-hidden">
-          <thead className="bg-gray-100">
+        <table className="min-w-full bg-white rounded-lg overflow-hidden *:hover:bg-gray-200">
+          <thead className="border-b border-gray-200">
             <tr>
               <th className="py-3 px-4 text-left">Отправитель</th>
               <th className="py-3 px-4 text-right">Обработано писем</th>
@@ -60,7 +60,7 @@ export const SenderAggregatesTable: React.FC = () => {
           </thead>
           <tbody>
             {data.map((row: SenderAggregateRow) => (
-              <tr key={row.sender} className="border-b border-gray-200 hover:bg-gray-50">
+              <tr key={row.sender} className="border-b border-gray-200">
                 <td className="py-3 px-4">{row.sender}</td>
                 <td className="py-3 px-4 text-right">{row.total_emails_processed}</td>
                 <td className="py-3 px-4 text-right">{`${row.total_links_attempted_open}/${row.total_links_opened}`}</td>

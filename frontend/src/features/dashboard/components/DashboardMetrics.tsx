@@ -16,48 +16,13 @@ export const DashboardMetrics: React.FC = () => {
     return <div className="empty-state">Нет доступных метрик.</div>;
   }
 
-  const { summary, recentProcesses, accountsStats } = data;
+  const { accountsStats } = data;
 
   return (
     <div className="dashboard-metrics">
-      <div className="metrics-summary grid grid-cols-4 gap-4 mb-6">
-        <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Всего отчетов</h3>
-          <p className="text-2xl font-bold mt-1">{summary.totalReports}</p>
-        </div>
-        <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Найдено писем</h3>
-          <p className="text-2xl font-bold mt-1">{summary.totalEmailsFound}</p>
-        </div>
-        <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Обработано писем</h3>
-          <p className="text-2xl font-bold mt-1">{summary.totalEmailsProcessed}</p>
-        </div>
-        <div className="metric-card bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500 text-sm font-medium">Успешность</h3>
-          <p className="text-2xl font-bold mt-1">{summary.successRate}%</p>
-        </div>
-      </div>
 
-      <div className="recent-processes mb-6">
-        <h2 className="text-xl font-semibold mb-4">Недавние процессы</h2>
-        {recentProcesses.length > 0 ? (
-          <ul className="bg-white rounded-lg shadow overflow-hidden">
-            {recentProcesses.map((process) => (
-              <li key={process.process_id} className="p-4 border-b last:border-b-0">
-                <div className="flex justify-between">
-                  <span className="font-medium">{process.process_id}</span>
-                  <span className="text-gray-500">
-                    {new Date(process.created_at).toLocaleString()}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500">Нет недавних процессов</p>
-        )}
-      </div>
+
+
 
       <div className="accounts-stats">
         <h2 className="text-xl font-semibold mb-4">Статистика по аккаунтам</h2>
