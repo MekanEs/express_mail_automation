@@ -131,7 +131,6 @@ export class BrowserInteractionService implements IBrowserInteractionService {
         waitUntil: 'domcontentloaded',
         timeout: 30000
       });
-      logger.info(responses.size, true)
       if (responses.size > 1) {
         this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
         logger.info(`[Browser Service] Ссылка '${task.linkToOpen}' прошла через ${responses.size} ответов / редиректов. Считается открытой.`, true);
@@ -144,13 +143,13 @@ export class BrowserInteractionService implements IBrowserInteractionService {
         .filter(r => r.url() === finalUrl)[0]?.status() || 0;
 
       if (finalStatus >= 400) {
-        logger.warn(`[Browser Service] Ссылка '${task.linkToOpen}' открыта, но с кодом HTTP ${finalStatus}. URL: ${finalUrl}`);
+        logger.warn(`[Browser Service] Ссылка '${task.linkToOpen}' открыта, но с кодом HTTP ${finalStatus}. URL: ${finalUrl}`, true);
       } else {
-        logger.debug(`[Browser Service] Ссылка '${task.linkToOpen}' успешно открыта. URL: ${finalUrl}`);
+        logger.info(`[Browser Service] Ссылка '${task.linkToOpen}' успешно открыта. URL: ${finalUrl}`, true);
       }
     } catch (err) {
       // Если были хоть какие-то ответы (редиректы) до ошибки - считаем ссылку открытой
-      if (responses.size > 0) {
+      if (responses.size > 1) {
         logger.info(`[Browser Service] Несмотря на ошибку, было зафиксировано ${responses.size} ответов/редиректов. Считается открытой.`, true);
         this.reportService.updateReportWithLinkStats(report, 0, 1); // links_targetOpen
       } else {
