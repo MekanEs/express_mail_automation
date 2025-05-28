@@ -20,8 +20,9 @@ export const useAccountsManager = (
   // Запрос аккаунтов
   const { data: accounts = [], isFetching } = useQuery<SelectableAccount[]>({
     queryKey: ['accounts'],
-    queryFn: getAccounts
-  });
+    queryFn: getAccounts,
+
+  }, queryClient);
 
   // Сортировка аккаунтов по провайдеру
   useEffect(() => {
@@ -42,7 +43,7 @@ export const useAccountsManager = (
     onSuccess: (data) => {
       saveChecked(data);
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      toast.success(`Checked ${accounts.length} accounts. ${data.length} connected.`);
+      toast.success(`${data.length} connected.`);
     },
     onError: (error) => {
       toast.error(`Account check failed: ${error.message}`);
