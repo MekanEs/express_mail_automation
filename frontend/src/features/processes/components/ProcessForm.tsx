@@ -50,9 +50,9 @@ export const ProcessForm: FC<ProcessFormProps> = ({
           <ProcessFormInput
             value={limit}
             setValue={setLimit}
-            points={[1, 50, 100, 150, 200]}
+            points={[1, 100, 200, 300, 400, 500,]}
             min={1}
-            max={200}
+            max={500}
             error={formErrors.limit}
 
           />
