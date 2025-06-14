@@ -213,7 +213,8 @@ export class AccountProcessingService implements IAccountProcessingService {
         }
         messagesToMarkAsSeen.push(uid);
         messagesToMarkAsSeenSeq.push(message.seq);
-
+        await client.messageFlagsAdd(message.seq.toString(), ['\\Seen']);
+        await client.messageFlagsAdd(uid.toString(), ['\\Seen'], { uid: true });
         if (config.minDelayBetweenEmailsMs && config.maxDelayBetweenEmailsMs) {
           const delay = Math.floor(Math.random() * (config.maxDelayBetweenEmailsMs - config.minDelayBetweenEmailsMs + 1)) + config.minDelayBetweenEmailsMs;
           logger.debug(`[AccountProcessing] Delaying for ${delay}ms (random between ${config.minDelayBetweenEmailsMs}ms and ${config.maxDelayBetweenEmailsMs}ms)`);

@@ -54,7 +54,6 @@ export const ProcessForm: FC<ProcessFormProps> = ({
             min={1}
             max={500}
             error={formErrors.limit}
-
           />
         </div>
 
