@@ -193,6 +193,7 @@ export class AccountProcessingService implements IAccountProcessingService {
       logger.info(`[AccountProcessing] Found ${messageUids.length} emails in ${mailboxPath}, will process ${uidsToProcess.length} (limit: ${config.limit})`, true);
 
       const messagesToMarkAsSeen: number[] = [];
+      const messagesToMarkAsSeenSeq: number[] = [];
 
       for (const uid of uidsToProcess) {
         const message = await client.fetchOne(uid.toString(), { source: true, uid: true, envelope: true, headers: true }, { uid: true });
@@ -211,6 +212,7 @@ export class AccountProcessingService implements IAccountProcessingService {
           browserTasks.push(browserTask);
         }
         messagesToMarkAsSeen.push(uid);
+        messagesToMarkAsSeenSeq.push(message.seq);
 
         if (config.minDelayBetweenEmailsMs && config.maxDelayBetweenEmailsMs) {
           const delay = Math.floor(Math.random() * (config.maxDelayBetweenEmailsMs - config.minDelayBetweenEmailsMs + 1)) + config.minDelayBetweenEmailsMs;
@@ -224,7 +226,16 @@ export class AccountProcessingService implements IAccountProcessingService {
 
       if (messagesToMarkAsSeen.length > 0) {
         logger.info(`[AccountProcessing] Marking ${messagesToMarkAsSeen.length} emails as read in ${mailboxPath}`, true);
-        await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
+        // await client.messageFlagsSet(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
+        // await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
+        for (const messageToSeen of messagesToMarkAsSeen) {
+          // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
+          await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'], { uid: true });
+        }
+        for (const messageToSeen of messagesToMarkAsSeenSeq) {
+          // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
+          await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'],);
+        }
       }
 
     } catch (mailboxErr) {
