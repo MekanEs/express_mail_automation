@@ -213,8 +213,12 @@ export class AccountProcessingService implements IAccountProcessingService {
         }
         messagesToMarkAsSeen.push(uid);
         messagesToMarkAsSeenSeq.push(message.seq);
+        // новое поведение
         await client.messageFlagsAdd(message.seq.toString(), ['\\Seen']);
         await client.messageFlagsAdd(uid.toString(), ['\\Seen'], { uid: true });
+        // можно попробовать
+        // await client.messageFlagsSet(message.seq.toString(), ['\\Seen']);
+        // await client.messageFlagsSet(uid.toString(), ['\\Seen'], { uid: true });
         if (config.minDelayBetweenEmailsMs && config.maxDelayBetweenEmailsMs) {
           const delay = Math.floor(Math.random() * (config.maxDelayBetweenEmailsMs - config.minDelayBetweenEmailsMs + 1)) + config.minDelayBetweenEmailsMs;
           logger.debug(`[AccountProcessing] Delaying for ${delay}ms (random between ${config.minDelayBetweenEmailsMs}ms and ${config.maxDelayBetweenEmailsMs}ms)`);
@@ -227,16 +231,19 @@ export class AccountProcessingService implements IAccountProcessingService {
 
       if (messagesToMarkAsSeen.length > 0) {
         logger.info(`[AccountProcessing] Marking ${messagesToMarkAsSeen.length} emails as read in ${mailboxPath}`, true);
+        // тут по старому только добавил ещё и messageFlagsSet
         // await client.messageFlagsSet(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
         // await client.messageFlagsAdd(messagesToMarkAsSeen, ['\\Seen'], { uid: true });
-        for (const messageToSeen of messagesToMarkAsSeen) {
-          // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
-          await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'], { uid: true });
-        }
-        for (const messageToSeen of messagesToMarkAsSeenSeq) {
-          // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
-          await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'],);
-        }
+
+        // тут в цикле то же самое
+        // for (const messageToSeen of messagesToMarkAsSeen) {
+        //   // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
+        //   await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'], { uid: true });
+        // }
+        // for (const messageToSeen of messagesToMarkAsSeenSeq) {
+        //   // await client.messageFlagsSet(messageToSeen.toString(), ['\\Seen'], { uid: true });
+        //   await client.messageFlagsAdd(messageToSeen.toString(), ['\\Seen'],);
+        // }
       }
 
     } catch (mailboxErr) {
